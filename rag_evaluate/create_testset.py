@@ -31,10 +31,24 @@ from ragas.testset.transforms import (
     apply_transforms,
 )
 
+from rag_evaluate.config import (
+    PROJECT_ROOT,
+    CREATE_TESTSET_OUTPUT_DIR,
+    CREATE_TESTSET_LLM_MODEL_NAME,
+    CREATE_TESTSET_LLM_TEMPERATURE,
+    CREATE_TESTSET_EMBEDDING_MODEL_NAME,
+    CREATE_TESTSET_SIZE,
+    CREATE_TESTSET_HEADLINE_WEIGHT,
+    CREATE_TESTSET_KEYPHRASE_WEIGHT,
+    CREATE_TESTSET_HEADLINE_MAX,
+    CREATE_TESTSET_SPLITTER_MAX_TOKENS,
+    CREATE_TESTSET_CHUNK_MDS_GLOB,
+)
+
 
 load_dotenv()
 
-project_root = Path(__file__).resolve().parents[1]
+project_root = PROJECT_ROOT
 def build_knowledge_graph_from_documents(docs: Sequence[Document]) -> KnowledgeGraph:
     """ドキュメント群からKnowledge Graphを構築する。"""
     kg = KnowledgeGraph()
@@ -54,8 +68,8 @@ def build_knowledge_graph_from_documents(docs: Sequence[Document]) -> KnowledgeG
 def apply_default_transforms(
     kg: KnowledgeGraph,
     llm: LangchainLLMWrapper,
-    headline_max: int = 20,
-    splitter_max_tokens: int = 1500,
+    headline_max: int = CREATE_TESTSET_HEADLINE_MAX,
+    splitter_max_tokens: int = CREATE_TESTSET_SPLITTER_MAX_TOKENS,
 ) -> None:
     """見出し抽出・分割・キーフレーズ抽出の変換を適用する。"""
     transforms = [
@@ -117,14 +131,14 @@ def main() -> None:
         raise ValueError("OPENAI_API_KEYが設定されていません。.envファイルを確認してください。") 
     
     # llm_model_name = "gpt-5" # 2個作成で1$ 20個作成で2$?
-    llm_model_name = "gpt-5-mini" # 20個作成で0.38$
-    embedding_model_name = "text-embedding-3-small"
+    llm_model_name = CREATE_TESTSET_LLM_MODEL_NAME
+    embedding_model_name = CREATE_TESTSET_EMBEDDING_MODEL_NAME
 
     # gpt-5-miniはtemperature=1のみサポート（デフォルト値）
     generator_llm = LangchainLLMWrapper(
         ChatOpenAI(
         model=llm_model_name,
-        temperature=0.2 # デフォルトが0.01になっておりgpt-5は対応していない
+        temperature=CREATE_TESTSET_LLM_TEMPERATURE,
         ),
         bypass_temperature=True  # temperatureをユーザで変更できるようにする設定
     )
@@ -133,13 +147,14 @@ def main() -> None:
     generator_embeddings = OpenAIEmbeddings(client=openai_client, model=embedding_model_name)
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    output_csv_path = project_root / "outputs" / "testdatas" / "testsets" / f"testset_{timestamp}.csv"
+    output_dir = project_root / CREATE_TESTSET_OUTPUT_DIR
+    output_csv_path = output_dir / f"testset_{timestamp}.csv"
 
-    testset_size = 20
-    headline_weight = 0.5
-    keyphrase_weight = 0.5
+    testset_size = CREATE_TESTSET_SIZE
+    headline_weight = CREATE_TESTSET_HEADLINE_WEIGHT
+    keyphrase_weight = CREATE_TESTSET_KEYPHRASE_WEIGHT
 
-    chunk_mds_glob_pattern = "outputs/pdf2md_per_pages/*.md" # testset作成用マークダウンファイル
+    chunk_mds_glob_pattern = CREATE_TESTSET_CHUNK_MDS_GLOB  # testset作成用マークダウンファイル
     print("\n取得したファイルリスト:")
     for file in glob.glob(chunk_mds_glob_pattern):
         print(file)
