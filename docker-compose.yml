@@ -1,0 +1,57 @@
+# OpenSearch版 docker-compose.yml
+
+# このファイルを使用して起動する場合：
+# docker-compose -f docker-compose.yml up -d
+
+# サービス停止（コンテナは残る）
+# docker-compose -f docker-compose.yml stop
+
+# サービス停止＋コンテナ削除
+# docker-compose -f docker-compose.yml down
+
+# ボリュームも含めて完全削除
+# docker-compose -f docker-compose.yml down -v
+
+# ブラウザでOpenSearch Dashboardsにアクセス
+# http://localhost:5601
+
+version: '3.8'
+
+services:
+  opensearch:
+    image: opensearchproject/opensearch:latest
+    container_name: opensearch-demo
+    environment:
+      - discovery.type=single-node # 単一ノード（1台構成）として起動
+      - plugins.security.disabled=true # セキュリティ機能を無効化（開発環境用）
+      - OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g # メモリ使用量の制限（初期1GB、最大1GB）
+      - DISABLE_INSTALL_DEMO_CONFIG=true # デモ設定のインストールを無効化
+    ports:
+      - "9200:9200" # REST API
+      - "9600:9600" # Performance Analyzer
+    mem_limit: 3g
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - opensearch
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:latest
+    container_name: opensearch-dashboards-demo
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch:9200 # OpenSearchのホスト指定
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true # セキュリティプラグインを無効化
+    ports:
+      - "5601:5601"
+    depends_on:
+      - opensearch
+    networks:
+      - opensearch
+
+volumes:
+  opensearch_data:
+    driver: local
+
+networks:
+  opensearch:
+    driver: bridge

@@ -1,0 +1,5 @@
+openai
+pypdf
+ragas
+langchain-community
+
