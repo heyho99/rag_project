@@ -96,3 +96,11 @@ EVAL_EVALUATOR_LLM_MODEL_NAME = "gpt-5-mini"
 EVAL_EVALUATOR_LLM_TEMPERATURE = 0.2
 EVAL_DATASET_CSV_PATH = "rag_evaluate/datasets/dataset_20251201_111112.csv"
 EVAL_RESULT_OUTPUT_DIR = "rag_evaluate/eval_results"
+
+# 評価に用いるメトリクス（エイリアス名のリスト）
+# 現状は Legacy API の3つを利用
+EVAL_METRICS = [
+    "llm_context_recall",
+    "context_entity_recall",
+    # "context_relevance",
+]
