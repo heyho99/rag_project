@@ -6,8 +6,8 @@ import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
 # from ragas.dataset_schema import SingleTurnSample
-from openai import OpenAI
-from ragas.llms import llm_factory
+from ragas.llms import LangchainLLMWrapper
+from langchain_openai import ChatOpenAI
 # from langchain_google_genai import GoogleGenerativeAI
 from ragas.metrics import (
     LLMContextRecall,
@@ -170,8 +170,13 @@ async def main():
     if not openai_api_key:
         raise ValueError("OPENAI_API_KEYが設定されていません。.envファイルを確認してください。")
 
-    openai_client = OpenAI(api_key=openai_api_key)
-    evaluator_llm = llm_factory(model_name, client=openai_client)
+    evaluator_llm = LangchainLLMWrapper(
+        ChatOpenAI(
+            model=model_name,
+            temperature=EVAL_EVALUATOR_LLM_TEMPERATURE
+        ),
+        bypass_temperature=True
+    )
 
     # gemini_api_key = os.getenv("GEMINI_API_KEY")
     # if not gemini_api_key:
