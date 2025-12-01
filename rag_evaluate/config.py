@@ -100,7 +100,22 @@ EVAL_RESULT_OUTPUT_DIR = "rag_evaluate/eval_results"
 # 評価に用いるメトリクス（エイリアス名のリスト）
 # 現状は Legacy API の3つを利用
 EVAL_METRICS = [
-    "llm_context_recall",
-    "context_entity_recall",
+    # "llm_context_recall",
+    # "context_entity_recall",
     # "context_relevance",
+    # "llm_context_precision_without_reference",
+    # "llm_context_precision_with_reference",
+    "nonllm_context_precision_with_reference",
+    # "nonllm_context_recall",
+    # "legacy.noise_sensitivity",
+    "legacy.answer_accuracy",
+    "response_groundedness",
+    # "collections.context_precision",
+    # "collections.context_utilization",
+    # "collections.context_entity_recall",
+    # "collections.noise_sensitivity",
+    # "collections.noise_sensitivity_irrelevant",
+    # "collections.faithfulness",
+    # "collections.answer_accuracy",
+    "collections.context_relevance",
 ]

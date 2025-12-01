@@ -6,10 +6,30 @@ import asyncio
 from pathlib import Path
 from dotenv import load_dotenv
 # from ragas.dataset_schema import SingleTurnSample
-from ragas.llms import LangchainLLMWrapper
-from langchain_openai import ChatOpenAI
+from openai import OpenAI
+from ragas.llms import llm_factory
 # from langchain_google_genai import GoogleGenerativeAI
-from ragas.metrics import LLMContextRecall, ContextEntityRecall, ContextRelevance
+from ragas.metrics import (
+    LLMContextRecall,
+    ContextEntityRecall as LegacyContextEntityRecall,
+    ContextRelevance as LegacyContextRelevance,
+    LLMContextPrecisionWithoutReference,
+    LLMContextPrecisionWithReference,
+    NonLLMContextPrecisionWithReference,
+    NonLLMContextRecall,
+    NoiseSensitivity as LegacyNoiseSensitivity,
+    AnswerAccuracy as LegacyAnswerAccuracy,
+    ResponseGroundedness,
+)
+from ragas.metrics.collections import (
+    ContextPrecision,
+    ContextUtilization,
+    ContextEntityRecall as CollectionsContextEntityRecall,
+    NoiseSensitivity as CollectionsNoiseSensitivity,
+    Faithfulness as CollectionsFaithfulness,
+    AnswerAccuracy as CollectionsAnswerAccuracy,
+    ContextRelevance as CollectionsContextRelevance,
+)
 from ragas import evaluate
 from ragas import EvaluationDataset
 
@@ -31,19 +51,38 @@ def _resolve_csv_path(csv_path: str) -> Path:
 
 
 METRIC_REGISTRY: dict[str, callable] = {
-    "llm_context_recall": lambda: LLMContextRecall(),
-    "context_entity_recall": lambda: ContextEntityRecall(),
-    "context_relevance": lambda: ContextRelevance(),
+    # Legacy metrics (クラスベース)
+    "llm_context_recall": lambda llm: LLMContextRecall(llm=llm),
+    "context_entity_recall": lambda llm: LegacyContextEntityRecall(llm=llm),
+    "context_relevance": lambda llm: LegacyContextRelevance(llm=llm),
+
+    "llm_context_precision_without_reference": lambda llm: LLMContextPrecisionWithoutReference(llm=llm),
+    "llm_context_precision_with_reference": lambda llm: LLMContextPrecisionWithReference(llm=llm),
+    "nonllm_context_precision_with_reference": lambda llm: NonLLMContextPrecisionWithReference(),
+    "nonllm_context_recall": lambda llm: NonLLMContextRecall(),
+    "legacy.noise_sensitivity": lambda llm: LegacyNoiseSensitivity(llm=llm),
+    "legacy.answer_accuracy": lambda llm: LegacyAnswerAccuracy(llm=llm),
+    "response_groundedness": lambda llm: ResponseGroundedness(llm=llm),
+
+    # Collections API metrics
+    "collections.context_precision": lambda llm: ContextPrecision(llm=llm),
+    "collections.context_utilization": lambda llm: ContextUtilization(llm=llm),
+    "collections.context_entity_recall": lambda llm: CollectionsContextEntityRecall(llm=llm),
+    "collections.noise_sensitivity": lambda llm: CollectionsNoiseSensitivity(llm=llm),
+    "collections.noise_sensitivity_irrelevant": lambda llm: CollectionsNoiseSensitivity(llm=llm, mode="irrelevant"),
+    "collections.faithfulness": lambda llm: CollectionsFaithfulness(llm=llm),
+    "collections.answer_accuracy": lambda llm: CollectionsAnswerAccuracy(llm=llm),
+    "collections.context_relevance": lambda llm: CollectionsContextRelevance(llm=llm),
 }
 
 
-def build_metrics() -> list:
+def build_metrics(evaluator_llm) -> list:
     metrics = []
     for name in EVAL_METRICS:
         factory = METRIC_REGISTRY.get(name)
         if factory is None:
             raise ValueError(f"未知のメトリクス名です: {name}")
-        metrics.append(factory())
+        metrics.append(factory(evaluator_llm))
     return metrics
 
 
@@ -131,13 +170,8 @@ async def main():
     if not openai_api_key:
         raise ValueError("OPENAI_API_KEYが設定されていません。.envファイルを確認してください。")
 
-    evaluator_llm = LangchainLLMWrapper(
-        ChatOpenAI(
-            model=model_name,
-            temperature=EVAL_EVALUATOR_LLM_TEMPERATURE
-        ),
-        bypass_temperature=True
-    )
+    openai_client = OpenAI(api_key=openai_api_key)
+    evaluator_llm = llm_factory(model_name, client=openai_client)
 
     # gemini_api_key = os.getenv("GEMINI_API_KEY")
     # if not gemini_api_key:
@@ -152,7 +186,7 @@ async def main():
     # ))
 
     # metrics
-    metrics = build_metrics()
+    metrics = build_metrics(evaluator_llm)
 
     dataset_csv_path = EVAL_DATASET_CSV_PATH
 
