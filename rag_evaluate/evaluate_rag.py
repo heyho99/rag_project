@@ -19,6 +19,7 @@ from rag_evaluate.config import (
     EVAL_EVALUATOR_LLM_TEMPERATURE,
     EVAL_DATASET_CSV_PATH,
     EVAL_RESULT_OUTPUT_DIR,
+    EVAL_METRICS,
 )
 
 
@@ -27,6 +28,23 @@ def _resolve_csv_path(csv_path: str) -> Path:
     if not path.is_absolute():
         path = PROJECT_ROOT / path
     return path
+
+
+METRIC_REGISTRY: dict[str, callable] = {
+    "llm_context_recall": lambda: LLMContextRecall(),
+    "context_entity_recall": lambda: ContextEntityRecall(),
+    "context_relevance": lambda: ContextRelevance(),
+}
+
+
+def build_metrics() -> list:
+    metrics = []
+    for name in EVAL_METRICS:
+        factory = METRIC_REGISTRY.get(name)
+        if factory is None:
+            raise ValueError(f"未知のメトリクス名です: {name}")
+        metrics.append(factory())
+    return metrics
 
 
 def _parse_list_field(raw_value: str, field_name: str, row_number: int) -> list[str]:
@@ -134,9 +152,7 @@ async def main():
     # ))
 
     # metrics
-    context_recall = LLMContextRecall()
-    context_entity_recall = ContextEntityRecall()
-    context_relevance = ContextRelevance()
+    metrics = build_metrics()
 
     dataset_csv_path = EVAL_DATASET_CSV_PATH
 
@@ -146,7 +162,7 @@ async def main():
     # evaluate
     result = evaluate(
         dataset=evaluation_dataset,
-        metrics=[context_recall, context_entity_recall, context_relevance],
+        metrics=metrics,
         llm=evaluator_llm
     )
 
