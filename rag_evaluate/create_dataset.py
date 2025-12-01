@@ -1,4 +1,3 @@
-import argparse
 import os
 import csv
 import json
@@ -7,8 +6,23 @@ from pathlib import Path
 from typing import List, Dict
 import sys
 
+from rag_evaluate.config import (
+    PROJECT_ROOT,
+    EVAL_INDEX_NAME,
+    EVAL_INPUT_CSV,
+    EVAL_TESTSETS_DIR,
+    EVAL_DATASET_OUTPUT_DIR,
+    EVAL_LLM_MODEL_NAME,
+    EVAL_LLM_TEMPERATURE,
+    EVAL_LLM_MAX_OUTPUT_TOKENS,
+    EVAL_LLM_THINKING_BUDGET,
+    EVAL_RAG_METHOD,
+    EVAL_RAG_TOP_K,
+    EVAL_RAG_RRF_RANK_CONSTANT,
+)
+
 # プロジェクトルートをパスに追加
-project_root = Path(__file__).resolve().parents[1]
+project_root = PROJECT_ROOT
 sys.path.insert(0, str(project_root))
 
 from rag_opensearch.rag_opensearch import get_opensearch_rag
@@ -119,10 +133,10 @@ def save_dataset_csv(dataset: List[Dict], output_dir: str = None):
     
     Args:
         dataset: 保存するデータセット
-        output_dir: 出力ディレクトリ（デフォルト: outputs/testdatas/datasets）
+        output_dir: 出力ディレクトリ
     """
     if output_dir is None:
-        output_dir = project_root / "outputs" / "testdatas" / "datasets"
+        output_dir = project_root / EVAL_DATASET_OUTPUT_DIR
     else:
         output_dir = Path(output_dir)
     
@@ -157,31 +171,16 @@ def main():
     """
     メイン処理
     使用例:
-        python -m src.ragas.create_dataset  --index-name tesseract-ocr
+        python -m src.ragas.create_dataset
     """
-    parser = argparse.ArgumentParser(description="Ragas用データセット生成スクリプト")
-    default_input_csv = project_root / "outputs" / "testdatas" / "testsets" / "testset_20251111144851.csv"
-    parser.add_argument(
-        "--index-name",
-        required=True,
-        help="OpenSearchのインデックス名"
-    )
-    parser.add_argument(
-        "--input-csv",
-        default=str(default_input_csv),
-        help="テストセットCSVファイルのパス"
-    )
-
-    args = parser.parse_args()
-
     # 入力CSVファイルのパスを指定
-    input_csv_path = Path(args.input_csv)
+    input_csv_path = project_root / EVAL_INPUT_CSV
     
     # CSVファイルが存在するか確認
     if not input_csv_path.exists():
         print(f"❌ エラー: CSVファイルが見つかりません: {input_csv_path}")
         print("\n利用可能なテストセット:")
-        testsets_dir = project_root / "outputs" / "testdatas" / "testsets"
+        testsets_dir = project_root / EVAL_TESTSETS_DIR
         if testsets_dir.exists():
             for csv_file in testsets_dir.glob("*.csv"):
                 print(f"  - {csv_file.name}")
@@ -194,19 +193,19 @@ def main():
     print(f"✓ テストセット読み込み完了: {len(testset)}件\n")
 
     llm_model = GeminiRAGModel(
-        model_name="gemini-2.5-pro",
-        temperature=0.7,
-        max_output_tokens=10000,
-        thinking_budget=128
+        model_name=EVAL_LLM_MODEL_NAME,
+        temperature=EVAL_LLM_TEMPERATURE,
+        max_output_tokens=EVAL_LLM_MAX_OUTPUT_TOKENS,
+        thinking_budget=EVAL_LLM_THINKING_BUDGET,
     )
 
     # RAGを実行
     # rag_method: 'knn', 'normalize', 'rrf' から選択
     dataset = run_rag_on_testset(
-        index_name=args.index_name,
+        index_name=EVAL_INDEX_NAME,
         testset=testset,
-        rag_method='rrf',  # ここで検索方法を指定
-        top_k=4, # コンテキストに含めるチャンク数上位k件
+        rag_method=EVAL_RAG_METHOD,
+        top_k=EVAL_RAG_TOP_K,
         llm_model=llm_model,
         ## normalize の場合の追加パラメータ例:
         # knn_weight=0.7,
@@ -214,7 +213,7 @@ def main():
         # normalization_technique='min_max',
         # combination_technique='arithmetic_mean'
         # rrf の場合の追加パラメータ例:
-        rank_constant=60
+        rank_constant=EVAL_RAG_RRF_RANK_CONSTANT,
     )
     
     # データセットを保存

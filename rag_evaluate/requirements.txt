@@ -2,4 +2,5 @@ openai
 pypdf
 ragas
 langchain-community
-
+unstructured
+unstructured[md]

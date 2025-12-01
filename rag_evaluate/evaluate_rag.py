@@ -13,12 +13,19 @@ from ragas.metrics import LLMContextRecall, ContextEntityRecall, ContextRelevanc
 from ragas import evaluate
 from ragas import EvaluationDataset
 
+from rag_evaluate.config import (
+    PROJECT_ROOT,
+    EVAL_EVALUATOR_LLM_MODEL_NAME,
+    EVAL_EVALUATOR_LLM_TEMPERATURE,
+    EVAL_DATASET_CSV_PATH,
+    EVAL_RESULT_OUTPUT_DIR,
+)
+
 
 def _resolve_csv_path(csv_path: str) -> Path:
     path = Path(csv_path)
     if not path.is_absolute():
-        project_root = Path(__file__).resolve().parents[1]
-        path = project_root / path
+        path = PROJECT_ROOT / path
     return path
 
 
@@ -100,7 +107,7 @@ async def main():
     """
     load_dotenv()
 
-    model_name = "gpt-5-mini" # gpt-5-miniは20個の評価で0.41$
+    model_name = EVAL_EVALUATOR_LLM_MODEL_NAME # gpt-5-miniは20個の評価で0.41$
 
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
@@ -109,7 +116,7 @@ async def main():
     evaluator_llm = LangchainLLMWrapper(
         ChatOpenAI(
             model=model_name,
-            temperature=0.2
+            temperature=EVAL_EVALUATOR_LLM_TEMPERATURE
         ),
         bypass_temperature=True
     )
@@ -131,7 +138,7 @@ async def main():
     context_entity_recall = ContextEntityRecall()
     context_relevance = ContextRelevance()
 
-    dataset_csv_path = "outputs/testdatas/datasets/dataset_20251113_131142.csv"
+    dataset_csv_path = EVAL_DATASET_CSV_PATH
 
     dataset = load_dataset_from_csv(dataset_csv_path)
     evaluation_dataset = EvaluationDataset.from_list(dataset)
@@ -147,9 +154,12 @@ async def main():
 
     result_df = result.to_pandas()
 
-    project_root = Path(__file__).resolve().parents[1]
+    project_root = PROJECT_ROOT
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    output_csv_path = project_root / "outputs" / "eval_results" / f"rag_result_{timestamp}.csv"
+    output_csv_path = project_root / EVAL_RESULT_OUTPUT_DIR / f"rag_result_{timestamp}.csv"
+
+    # 出力ディレクトリが存在しない場合は作成
+    output_csv_path.parent.mkdir(parents=True, exist_ok=True)
 
     result_df.to_csv(
         output_csv_path,
