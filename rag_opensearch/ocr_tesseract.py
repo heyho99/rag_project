@@ -8,7 +8,10 @@ from typing import Optional
 
 import pdfplumber
 import pytesseract
-from .config import OCR_INPUT_PATTERN, OCR_OUTPUT_DIR, OCR_LANG, OCR_DPI
+try:
+    from .config import OCR_INPUT_PATTERN, OCR_OUTPUT_DIR, OCR_LANG, OCR_DPI
+except ImportError:  # pragma: no cover
+    from config import OCR_INPUT_PATTERN, OCR_OUTPUT_DIR, OCR_LANG, OCR_DPI
 
 
 def pdf_to_text(
