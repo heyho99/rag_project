@@ -1,6 +1,15 @@
 ## はじめに
- 目標は、無料でハイブリッドRAG(全文検索+ベクトル検索)を構築することです。
- この記事では、「何を使ったか」「どう動かすか」「どんな結果が出るか」だけをシンプルにまとめます。
+ 目標は、ハイブリッドRAG(全文検索+ベクトル検索)を構築することです。
+
+ ### リポジトリ
+ この記事で使用するリポジトリは以下からご参照ください。
+ https://github.com/heyho99/rag_project
+
+ ### PDF
+ 以下のPDFを使用しています。
+ https://www.city.kobe.lg.jp/documents/15123/r5_doukou.pdf
+ https://www.fsa.go.jp/news/r4/hoken/20230630-2/01.pdf
+ 
 
 ## 目次
 - [やりたいこと](#やりたいこと)
@@ -32,7 +41,7 @@
 - **Gemini API**
   - Google AI Studio の無料枠
   - テキスト埋め込みに `gemini-embedding-001`
-  - 回答生成に `gemini-2.5-pro` などを利用
+  - 回答生成に `gemini-2.5-pro` を利用（gemini-3-proは現状API無料枠がありません）
 
 この 2 つを組み合わせて、ローカルで完結するハイブリッドRAGを構築しています。
 
@@ -64,9 +73,10 @@ flowchart TD
 
 
 ## ディレクトリ構成
-
+`/rag_project/rag_opensearch/` ディレクトリを使用します。
+その他 `/rag_project/rag_evaluate/` `/rag_project/pdf2md/` については別の記事でご紹介します。
 ```text
-for_blog/
+rag_project/
 ├─ .env                     # GEMINI_API_KEY
 ├─ docs/                    # 入力PDFを置くディレクトリ（01.pdf, r5_doukou.pdf など）
 ├─ pdf2md/
@@ -83,7 +93,7 @@ for_blog/
 │  ├─ outputs/              # 今後の出力用ディレクトリ（現状は未使用）
 │  ├─ rag_opensearch.py     # OpenSearch + Gemini Embedding による RAG 検索ロジックと動作確認用 main
 │  └─ requirements.txt      # rag_opensearch 用の Python ライブラリ一覧（OpenSearch, Gemini, OCR など）
-└─ （その他のディレクトリ）
+└─ （その他）
 ```
 
 ## セットアップ
@@ -97,38 +107,78 @@ for_blog/
 ### 1. 仮想環境と依存パッケージ
 
 ```bash
-git clone <リポジトリURL>
-cd <repository>
+git clone https://github.com/heyho99/rag_project
+cd rag_project
 
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # Windowsなら: venv\Scripts\activate
 
-pip install -r requirements.txt
+pip install -r rag_openseach/requirements.txt
 ```
 
-### 2. OpenSearch を起動
+### 2. PDFをダウンロード
+```bash
+wget -O docs/01.pdf https://www.fsa.go.jp/news/r4/hoken/20230630-2/01.pdf
+wget -O docs/r5_doukou.pdf https://www.city.kobe.lg.jp/documents/15123/r5_doukou.pdf
+```
+
+### 3. OpenSearch を起動
 
 ```bash
-docker compose -f rag_opensearch/docker-compose.yml up -d
+docker-compose up -d
 ```
 
-### 3. Gemini API キーを設定
+### 4. Gemini API キーを設定
 
 プロジェクトルートの `.env` に API キーを書きます。
+```bash
+vi .env
+```
 
 ```env
 GEMINI_API_KEY=your_api_key_here
 ```
 
-### 4. config.py を設定
+### 5. config.py を設定
 
 `rag_opensearch/config.py` で、インデックス名や OCR の入出力パスなどを確認・必要に応じて変更します。
+```bash
+rag_opensearch/config.py
+```
 
 ```python
+# OpenSearch Setting
+OPENSEARCH_HOST = "localhost"
+OPENSEARCH_PORT = 9200
+
+# Retrieval+Index Setting
+EMBEDDING_DIM = 1536
 RAG_INDEX_NAME = "tesseract-txt"
 
+# Retrieval Setting
+RAG_TOP_K = 2
+RRF_RANK_CONSTANT = 60
+
+# Index Setting
+CHUNK_SIZE = 1000
+CHUNK_OVERLAP = 200
+CHUNK_OUTPUT_DIR = "outputs/chunks"
+INDEX_FILE_PATTERNS = [
+    "rag_opensearch/ocr_tesseract/*.txt",
+]
+
+# Gemini Setting
+GEMINI_EMBEDDING_MODEL_NAME = "gemini-embedding-001"
+RAG_LLM_MODEL_NAME = "gemini-2.5-pro"
+RAG_LLM_TEMPERATURE = 1.0
+RAG_LLM_MAX_OUTPUT_TOKENS = 10000
+RAG_LLM_THINKING_BUDGET = 128
+
+# OCR Setting
 OCR_INPUT_PATTERN = "docs/*.pdf"
 OCR_OUTPUT_DIR = "rag_opensearch/ocr_tesseract"
+OCR_LANG = "jpn"
+OCR_DPI = 300
 ```
 
 以降の OCR・インデックス作成・RAG 実行は、この設定に従って動きます。
@@ -159,7 +209,9 @@ python -m rag_opensearch.ocr_tesseract
 実行コマンド：
 
 ```bash
-python -m index_documents
+docker ps # openseachコンテナが起動していることを確認
+
+python -m rag_opensearch.index_documents
 ```
 
 ## 検索とRAG実行
@@ -184,40 +236,8 @@ python -m rag_opensearch.rag_opensearch
 
 がターミナルに表示されます。
 
-## 実行結果の例
 
-実際の記事では、このセクションに **実行ログや回答例** を貼り付けてください。
-
-### 1. インデックス作成コマンドの出力
-
-```text
-インデックス 'tesseract-txt' を作成しました
-=== ドキュメント登録システム ===
-
-処理対象ファイル: 2個
-  - ocr_tesseract/01.txt
-  - ocr_tesseract/r5_doukou.txt
-
-ファイル処理開始...
-
-[1/2] 処理中: 01.txt
-  分割完了: 15個のチャンク
-  チャンク保存: outputs/chunks/20251128_101428_01.json
-  OpenSearchに登録中... (15個のチャンク)
-登録完了: 01.txt から 15個のチャンクを登録
-  ✓ 完了
-
-[2/2] 処理中: r5_doukou.txt
-  分割完了: 39個のチャンク
-  チャンク保存: outputs/chunks/20251128_101430_r5_doukou.json
-  OpenSearchに登録中... (39個のチャンク)
-登録完了: r5_doukou.txt から 39個のチャンクを登録
-  ✓ 完了
-
-全処理完了: 合計 54個のチャンクを登録
-```
-
-### 2. RAG 実行コマンドの出力
+### RAG 実行コマンドの出力
 
 ```text
 (venv) ouchi@E228E:~/for_blog/pdf2md$ python -m rag_opensearch

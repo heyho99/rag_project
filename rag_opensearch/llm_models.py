@@ -1,5 +1,7 @@
 import os
 import time
+import re
+from typing import Optional
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -37,6 +39,20 @@ class BaseGeminiModel():
         self.temperature = temperature
         self.thinking_budget = thinking_budget
         self.max_output_tokens = max_output_tokens
+
+    def _extract_retry_delay_seconds(self, error: Exception) -> Optional[int]:
+        message = str(error)
+        m = re.search(r"retryDelay'\s*:\s*'(?P<s>\d+)s'", message)
+        if m:
+            return int(m.group("s"))
+        m = re.search(r"Please retry in\s+(?P<s>[0-9.]+)s", message)
+        if m:
+            return max(1, int(float(m.group("s")) + 0.9999))
+        return None
+
+    def _is_zero_quota(self, error: Exception) -> bool:
+        lowered = str(error).lower()
+        return "limit: 0" in lowered
 
     def _handle_api_error(self, e: Exception, model_class_name: str) -> str:
         """API呼び出しエラーのハンドリング"""
@@ -78,8 +94,13 @@ class GeminiRAGModel(BaseGeminiModel):
 
             except Exception as e:
                 if (not quota_retried) and self._is_quota_error(e):
+                    if self._is_zero_quota(e):
+                        return (
+                            "レスポンス生成に失敗（Gemini APIのクオータが0です。"
+                            "プラン/請求設定/モデルの利用可能枠を確認してください）"
+                        )
                     quota_retried = True
-                    wait_seconds = 60
+                    wait_seconds = self._extract_retry_delay_seconds(e) or 60
                     print(f"GeminiRAGChatModel: クォータ制限を検出。{wait_seconds}秒待機してリトライします。")
                     time.sleep(wait_seconds)
                     continue
