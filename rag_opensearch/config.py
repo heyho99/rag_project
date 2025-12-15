@@ -7,7 +7,7 @@ EMBEDDING_DIM = 1536
 RAG_INDEX_NAME = "tesseract-txt"
 
 # Retrieval Setting
-RAG_TOP_K = 5
+RAG_TOP_K = 2
 RRF_RANK_CONSTANT = 60
 
 # Index Setting
@@ -20,7 +20,7 @@ INDEX_FILE_PATTERNS = [
 
 # Gemini Setting
 GEMINI_EMBEDDING_MODEL_NAME = "gemini-embedding-001"
-RAG_LLM_MODEL_NAME = "gemini-2.5-pro"
+RAG_LLM_MODEL_NAME = "gemini-3-pro-preview"
 RAG_LLM_TEMPERATURE = 1.0
 RAG_LLM_MAX_OUTPUT_TOKENS = 10000
 RAG_LLM_THINKING_BUDGET = 128

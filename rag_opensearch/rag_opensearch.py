@@ -313,7 +313,7 @@ def main():
         print(f"\n\n=== 質問: {question} ===")
 
         # Dict{query:str, answer:str, sources:[{id:str, filename:str, chunk_index:int, page:int, score:float, content:str}]}
-        result = rag.answer(question, k=5, verbose=True) 
+        result = rag.answer(question, k=RAG_TOP_K, verbose=True) 
         print(f"\n\n{result}\n\n")
     
 

@@ -1,3 +1,5 @@
+docs/
+
 rag_opensearch/ocr_tesseract/
 
 rag_evaluate/pdf2md_per_pages/
