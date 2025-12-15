@@ -111,7 +111,7 @@ EVAL_METRICS = [
     # "legacy.answer_accuracy",
     # "response_groundedness",
 
-    # 以下のcollectionsは、evaluate()に未対応（ascoreをループするしかないか）
+    # 以下のcollectionsは、evaluate()に未対応か（ascoreをループするしかないか）
     # "collections.context_precision",
     # "collections.context_utilization",
     # "collections.context_entity_recall",
