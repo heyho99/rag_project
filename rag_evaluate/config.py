@@ -75,7 +75,7 @@ EVAL_INDEX_NAME = "tesseract-txt"
 
 # create_dataset.py で使用するテストセット CSV のデフォルトパス
 # PROJECT_ROOT からの相対パスで指定
-EVAL_INPUT_CSV = "rag_evaluate/testsets/testset_20251201101757.csv"
+EVAL_INPUT_CSV = "rag_evaluate/testsets/testset_20251219161219.csv"
 EVAL_TESTSETS_DIR = "outputs/testdatas/testsets"
 
 EVAL_DATASET_OUTPUT_DIR = "rag_evaluate/datasets"
@@ -94,7 +94,7 @@ EVAL_RAG_RRF_RANK_CONSTANT = 60
 
 EVAL_EVALUATOR_LLM_MODEL_NAME = "gpt-5-mini"
 EVAL_EVALUATOR_LLM_TEMPERATURE = 0.2
-EVAL_DATASET_CSV_PATH = "rag_evaluate/datasets/dataset_20251201_111112.csv"
+EVAL_DATASET_CSV_PATH = "rag_evaluate/datasets/dataset_20251219_164155.csv"
 EVAL_RESULT_OUTPUT_DIR = "rag_evaluate/eval_results"
 
 # 評価に用いるメトリクス（エイリアス名のリスト）
