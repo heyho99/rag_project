@@ -13,7 +13,6 @@
 
 ## 目次
 - [やりたいこと](#やりたいこと)
-- [完全無料でハイブリッドRAGを構築できる理由](#完全無料でハイブリッドragを構築できる理由)
 - [ハイブリッドRAGとは](#ハイブリッドragとは)
 - [ディレクトリ構成](#ディレクトリ構成)
 - [セットアップ](#セットアップ)
@@ -32,16 +31,16 @@
   - ベクトル検索（Embedding）
   を組み合わせて、精度の高い検索＋要約をしたい
 
-### 完全無料でハイブリッドRAGを構築できる理由
+### ハイブリッドRAGのコンポーネント
 
 - **OpenSearch**
   - OSS の検索エンジン（Apache 2.0）
   - 全文検索（BM25）とベクトル検索の両方に対応
   - Docker でローカル起動すれば利用料金はゼロ
 - **Gemini API**
-  - Google AI Studio の無料枠
+  - Google AI Studio のAPI
   - テキスト埋め込みに `gemini-embedding-001`
-  - 回答生成に `gemini-2.5-pro` を利用（gemini-3-proは現状API無料枠がありません）
+  - 回答生成に `gemini-3-pro-preview` を利用
 
 この 2 つを組み合わせて、ローカルで完結するハイブリッドRAGを構築しています。
 
@@ -113,10 +112,14 @@ cd rag_project
 python3 -m venv venv
 source venv/bin/activate  # Windowsなら: venv\Scripts\activate
 
-pip install -r rag_openseach/requirements.txt
+pip install -r rag_opensearch/requirements.txt
 ```
 
 ### 2. PDFをダウンロード
+https://www.fsa.go.jp/news/r4/hoken/20230630-2/01.pdf
+
+https://www.city.kobe.lg.jp/documents/15123/r5_doukou.pdf
+
 ```bash
 wget -O docs/01.pdf https://www.fsa.go.jp/news/r4/hoken/20230630-2/01.pdf
 wget -O docs/r5_doukou.pdf https://www.city.kobe.lg.jp/documents/15123/r5_doukou.pdf
@@ -146,7 +149,7 @@ GEMINI_API_KEY=your_api_key_here
 rag_opensearch/config.py
 ```
 
-```python
+```python: config.py
 # OpenSearch Setting
 OPENSEARCH_HOST = "localhost"
 OPENSEARCH_PORT = 9200
@@ -169,10 +172,8 @@ INDEX_FILE_PATTERNS = [
 
 # Gemini Setting
 GEMINI_EMBEDDING_MODEL_NAME = "gemini-embedding-001"
-RAG_LLM_MODEL_NAME = "gemini-2.5-pro"
-RAG_LLM_TEMPERATURE = 1.0
-RAG_LLM_MAX_OUTPUT_TOKENS = 10000
-RAG_LLM_THINKING_BUDGET = 128
+RAG_LLM_MODEL_NAME = "gemini-3-pro-preview"
+RAG_LLM_THINKING_LEVEL = "HIGH"
 
 # OCR Setting
 OCR_INPUT_PATTERN = "docs/*.pdf"
@@ -185,7 +186,7 @@ OCR_DPI = 300
 
 ## OCR で PDF をテキスト化
 
-まずは、`docs/` 配下の PDF を OCR してテキスト化します。
+まずは、`docs/` 配下の PDF を OCR してテキスト化し、`rag_opensearch/ocr_tesseract/`に出力されます。
 
 - 入力: `docs/01.pdf`, `docs/r5_doukou.pdf` など
 - 出力: `rag_opensearch/ocr_tesseract/01.txt` など
@@ -240,7 +241,6 @@ python -m rag_opensearch.rag_opensearch
 ### RAG 実行コマンドの出力
 
 ```text
-(venv) ouchi@E228E:~/for_blog/pdf2md$ python -m rag_opensearch
 ✅ RRF検索パイプライン 'tesseract-txt-rrf-pipeline' を作成しました
 
 
@@ -283,16 +283,13 @@ python -m rag_opensearch.rag_opensearch
 
 - Embedding はクライアント側（Python + Gemini API）で計算し、OpenSearch は「保存して検索するだけ」にしている
 - ハイブリッド検索は OpenSearch の Hybrid Search + RRF 機能に乗るだけにして、実装側はシンプルに保つ
-- インデックス名や top_k、LLM のモデル名・温度などは `config.py` に集約し、コードは「設定を読むだけ」にしている
+- インデックス名や top_k、LLM のモデル名・思考レベルなどは `config.py` に集約し、コードは「設定を読むだけ」にしている
 
 ## まとめ
 
-- OpenSearch（Docker）と Gemini API の無料枠だけで、BM25 + ベクトル検索 + RRF なハイブリッドRAGをローカル構築した
-- コードは
-  - インデックス作成（`index_documents.py`）
-  - 検索＆RAG（`rag_opensearch.py`）
-  に分け、設定は `config.py` に寄せている
-- 詳しいアルゴリズムやパラメータは OpenSearch / Gemini の公式ドキュメントを見ながら、自分のデータに合わせて調整していく想定
+- OpenSearch（Docker）と Gemini API を組み合わせて、検索（BM25 + ベクトル + RRF）と回答生成をローカルで一気通貫できるようにした
+- コードは「登録（`index_documents.py`）」と「検索＆RAG（`rag_opensearch.py`）」に分け、設定は `config.py` に集約している
+- まずは最小構成で動かして、用途に合わせて `top_k` / `chunk_size` / `thinking_level` などを少しずつ調整していくのが現実的だと思う
 
 ---
 
@@ -452,30 +449,31 @@ if self.output_dimensionality < 3072:
 ### 4. LLM 周り（`llm_models.py`）
 
 - `BaseGeminiModel` で
-  - API キーの読み込み
   - Gemini クライアントの初期化
-  - 温度・思考予算（`thinking_budget`）・最大出力トークン数
-  を一括管理しています。
+  - モデル名（`model_name`）と思考レベル（`thinking_level`）の保持
+  をまとめています（必要なら `api_key` も引数で渡せます）。
 - `GeminiRAGModel` は RAG 専用のラッパーで、`generate_response()` 1 本に責務を絞っています。
-- ここでもクォータ制限（429）やモデル過負荷（503）を検知し、
-  - 一定秒数スリープ
-  - 最大リトライ回数
-  を決めたうえで自動リトライするようにしています。
+- `gemini_doc.md` と同じ呼び出しに寄せて、`generate_content_stream()` の出力を連結して最終テキストとして返します。
 
 ```python
 # llm_models.py より抜粋（RAG 用の応答生成）
-response = self.client.models.generate_content(
-    model=self.model_name,
-    contents=[prompt],
-    config=types.GenerateContentConfig(
-        temperature=self.temperature,
-        max_output_tokens=self.max_output_tokens,
-        thinking_config=types.ThinkingConfig(
-            thinking_budget=self.thinking_budget,
-        ),
+contents = [
+    types.Content(
+        role="user",
+        parts=[types.Part.from_text(text=prompt)],
     ),
+]
+generate_content_config = types.GenerateContentConfig(
+    thinking_config=types.ThinkingConfig(thinking_level=self.thinking_level),
 )
-return response.text.strip() if response.text else "レスポンスが空です"
+chunks = []
+for chunk in self.client.models.generate_content_stream(
+    model=self.model_name,
+    contents=contents,
+    config=generate_content_config,
+):
+    chunks.append(chunk.text or "")
+return "".join(chunks)
 ```
 
 ### 5. 設定の集約（`config.py`）
@@ -484,7 +482,7 @@ return response.text.strip() if response.text else "レスポンスが空です"
   - 接続情報: `OPENSEARCH_HOST`, `OPENSEARCH_PORT`
   - インデックス名・ top_k など: `RAG_INDEX_NAME`, `RAG_TOP_K`, `RRF_RANK_CONSTANT`
   - チャンク分割: `CHUNK_SIZE`, `CHUNK_OVERLAP`, `INDEX_FILE_PATTERNS`
-  - LLM 設定: `RAG_LLM_MODEL_NAME`, `RAG_LLM_TEMPERATURE`, など
+  - LLM 設定: `RAG_LLM_MODEL_NAME`, `RAG_LLM_THINKING_LEVEL`
 - 実装側は基本的に「config から値を読むだけ」にしており、
   - 実験でパラメータを変えたいとき
   - インデックス名を変えたいとき
@@ -507,5 +505,12 @@ INDEX_FILE_PATTERNS = [
     "rag_opensearch/ocr_tesseract/*.txt",
 ]
 
+GEMINI_EMBEDDING_MODEL_NAME = "gemini-embedding-001"
+RAG_LLM_MODEL_NAME = "gemini-3-pro-preview"
+RAG_LLM_THINKING_LEVEL = "HIGH"
+
 OCR_INPUT_PATTERN = "docs/*.pdf"
 OCR_OUTPUT_DIR = "rag_opensearch/ocr_tesseract"
+OCR_LANG = "jpn"
+OCR_DPI = 300
+```
