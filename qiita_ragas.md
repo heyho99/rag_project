@@ -158,12 +158,12 @@ CREATE_TESTSET_OUTPUT_DIR = "rag_evaluate/testsets"
 CREATE_TESTSET_CHUNK_MDS_GLOB = f"{PDF2MD_OUTPUT_DIR}/*.md"
 
 EVAL_INDEX_NAME = "tesseract-txt"                   # RAGで使うOpenSearchインデックス
-EVAL_INPUT_CSV = "rag_evaluate/testsets/testset_....csv"
+EVAL_INPUT_CSV = "rag_evaluate/testsets/testset_....csv"  # 出力されたtestsetのパスを入れます
 
 EVAL_DATASET_OUTPUT_DIR = "rag_evaluate/datasets"
 EVAL_LLM_MODEL_NAME = "gemini-3-flash-preview"
 EVAL_LLM_THINKING_LEVEL = "HIGH"
-EVAL_DATASET_CSV_PATH = "rag_evaluate/datasets/dataset_....csv"
+EVAL_DATASET_CSV_PATH = "rag_evaluate/datasets/dataset_....csv"  # 出力されたdatasetのパスを入れます
 
 EVAL_RESULT_OUTPUT_DIR = "rag_evaluate/eval_results"
 ```
@@ -322,48 +322,137 @@ CSV 側では、各質問ごとに個別スコアが出ているので、
 
 ## 以下実装内容をもう少し解説
 
-ここからは、記事中で触れたスクリプトの中身を、コード抜粋ベースで少しだけ補足します。  
-（詳細は GitHub の該当ファイルを参照してください。）
+ここからは、記事中で触れたスクリプトの中身を「コード抜粋 + 端的な説明」で補足します。
 
 ### 1. Ragasでテストセットを作成するためのMDファイルを作成（[pdf2md_per_pages.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/pdf2md_per_pages.py:0:0-0:0)）
 
-- [split_pdf_into_chunks()](cci:1://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/pdf2md_per_pages.py:39:0-85:26) で PDF を `PDF2MD_PAGES_PER_CHUNK` ページごとの一時 PDF に分割
-- 各チャンクを `GeminiPDFConverterModel` に渡して Markdown を生成
-- タイムスタンプ付きファイル名＋ページ範囲付きで保存
+PDF を数ページごとに分割し、分割した PDF チャンクを LLM に渡して Markdown を生成します。
 
-ページ数が多い PDF でも、ページ単位で LLM に投げることで、  
-トークン上限に引っかかりにくくしています。
+```python
+def split_pdf_into_chunks(
+    pdf_path: str,
+    pages_per_chunk: int,
+    temp_dir: str
+) -> List[Tuple[str, int, int]]:
+    pages_per_chunk = max(1, pages_per_chunk)
+
+    reader = PdfReader(pdf_path)
+    total_pages = len(reader.pages)
+    if total_pages == 0:
+        return []
+
+    chunk_info_list: List[Tuple[str, int, int]] = []
+    pdf_stem = Path(pdf_path).stem
+
+    for start_idx in range(0, total_pages, pages_per_chunk):
+        end_idx = min(start_idx + pages_per_chunk, total_pages)
+        writer = PdfWriter()
+
+        for page_index in range(start_idx, end_idx):
+            writer.add_page(reader.pages[page_index])
+
+        chunk_start_page = start_idx + 1
+        chunk_end_page = end_idx
+        chunk_filename = (
+            Path(temp_dir)
+            / f"{pdf_stem}_pages_{chunk_start_page:04d}-{chunk_end_page:04d}.pdf"
+        )
+
+        with open(chunk_filename, "wb") as chunk_file:
+            writer.write(chunk_file)
+
+        chunk_info_list.append((str(chunk_filename), chunk_start_page, chunk_end_page))
+
+    return chunk_info_list
+```
+
+- `split_pdf_into_chunks()` が、入力 PDF を「数ページ単位の一時 PDF」に分割し、各チャンクのファイルパスとページ範囲を返します。
+- 返ってきた各チャンクを順に LLM へ渡して Markdown を生成し、`rag_evaluate/pdf2md_per_pages/` に `.md` として保存します。
 
 ### 2. テストセット生成（[create_testset.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/create_testset.py:0:0-0:0)）
 
-- `KnowledgeGraph` + 各種 Transform（見出し抽出・キーフレーズ抽出）で  
-  ドキュメント構造を Ragas にとって扱いやすいグラフに変換
-- 複数のペルソナ（行政アナリスト、保険会社経営企画担当、観光政策担当など）を定義し、  
-  人物像に応じた質問を生成
+Markdown から Knowledge Graph を構築し、Transform を適用してから、Ragas の `TestsetGenerator` でテストセットを生成します。
 
-「どんなユーザーが、どんな視点でこの資料を読むのか？」を  
-ペルソナとして明示することで、より現実に近い質問セットを作る狙いがあります。
+```python
+def apply_default_transforms(
+    kg: KnowledgeGraph,
+    llm: LangchainLLMWrapper,
+    headline_max: int = CREATE_TESTSET_HEADLINE_MAX,
+    splitter_max_tokens: int = CREATE_TESTSET_SPLITTER_MAX_TOKENS,
+) -> None:
+    transforms = [
+        HeadlinesExtractor(llm=llm, max_num=headline_max),
+        HeadlineSplitter(max_tokens=splitter_max_tokens),
+        KeyphrasesExtractor(llm=llm),
+    ]
+    apply_transforms(kg, transforms=transforms)
+```
+
+- `DirectoryLoader` で Markdown を読み込み、`build_knowledge_graph_from_documents()` で `KnowledgeGraph`（DOCUMENT ノードの配列）を作ります。
+- `apply_default_transforms()` が、
+  - `HeadlinesExtractor`（見出し抽出）
+  - `HeadlineSplitter`（見出しをもとに分割）
+  - `KeyphrasesExtractor`（キーフレーズ抽出）
+  を順に適用し、Knowledge Graph の各ノードにプロパティ（`headlines` / `keyphrases` など）を付与します。
+- `TestsetGenerator.generate(...)` が、ペルソナ定義と query_distribution に基づいて「質問 + 理想回答 + 参照コンテキスト」を生成し、CSV に保存します。
 
 ### 3. データセット作成（[create_dataset.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/create_dataset.py:0:0-0:0)）
 
-- `get_opensearch_rag()` で前回記事の RAG 実装を再利用
-- [run_rag_on_testset()](cci:1://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/create_dataset.py:55:0-126:18) でテストセットの各行に対して RAG を実行し、  
-  - `response`（RAG の回答）  
-  - `retrieved_contexts`（取得されたコンテキスト）  
-  を追記
+Step 2 のテストセット CSV に対して実際に RAG を実行し、回答と取得コンテキストを追記した「評価用データセット CSV」を作ります。
 
-エラー時には `ERROR: ...` を詰めつつ処理を継続するようになっているので、  
-一部のクエリで失敗しても全体のバッチが止まらないようにしています。
+```python
+llm_model = GeminiRAGModel(
+    model_name=EVAL_LLM_MODEL_NAME,
+    thinking_level=EVAL_LLM_THINKING_LEVEL,
+)
+
+rag = get_opensearch_rag(
+    index_name=index_name,
+    top_k=top_k,
+    llm_model=llm_model,
+    **rag_kwargs
+)
+
+result = rag.answer(question, k=top_k, verbose=False)
+test_item['response'] = result['answer']
+retrieved_contexts = [doc['content'] for doc in result['sources']]
+test_item['retrieved_contexts'] = json.dumps(retrieved_contexts, ensure_ascii=False)
+```
+
+- `load_testset_csv()` が Step 2 の CSV を読み込み、行を dict のリストとして読み出します。
+- `run_rag_on_testset()` が各 `user_input` を `rag.answer()` に渡し、
+  - `response`（RAG の回答）
+  - `retrieved_contexts`（取得したコンテキストのテキスト配列を JSON 文字列化したもの）
+  を各行に追加します。
+- 追加済みの行を `datasets/` 配下に CSV として保存します。
 
 ### 4. RAG 評価（[evaluate_rag.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/evaluate_rag.py:0:0-0:0)）
 
-- `METRIC_REGISTRY` で、文字列のメトリクス名 → 実際のクラス  
-  のマッピングを管理
-- `EVAL_METRICS` に指定した名前だけを [build_metrics()](cci:1://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/evaluate_rag.py:78:0-85:18) でインスタンス化
-- 新しいメトリクスを試したいときは、  
-  - `METRIC_REGISTRY` にエイリアスを追加  
-  - `EVAL_METRICS` にその名前を入れる  
-  だけで評価対象に含められるようにしてあります。
+Step 3 の CSV を読み込み、`EvaluationDataset` を作って `ragas.evaluate()` を実行し、スコアを出力・保存します。
+
+```python
+METRIC_REGISTRY: dict[str, callable] = {
+    "llm_context_recall": lambda llm: LLMContextRecall(llm=llm),
+    "context_entity_recall": lambda llm: LegacyContextEntityRecall(llm=llm),
+    "context_relevance": lambda llm: LegacyContextRelevance(llm=llm),
+}
+
+def build_metrics(evaluator_llm) -> list:
+    metrics = []
+    for name in EVAL_METRICS:
+        factory = METRIC_REGISTRY.get(name)
+        if factory is None:
+            raise ValueError(f"未知のメトリクス名です: {name}")
+        metrics.append(factory(evaluator_llm))
+    return metrics
+```
+
+- `load_dataset_from_csv()` が Step 3 の CSV を読み込み、必要な列を揃えて list[dict] に変換します。
+- `EvaluationDataset.from_list(...)` で評価用データセットを作り、`evaluate(...)` に渡してメトリクスを計算します。
+- `METRIC_REGISTRY` と `EVAL_METRICS` により、評価対象メトリクスの生成を切り替えています。
+- 結果はコンソール出力し、`eval_results/` 配下に CSV として保存します。
+
+
 
 
 ## まとめ
