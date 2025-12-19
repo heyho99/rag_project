@@ -110,14 +110,4 @@ EVAL_METRICS = [
     # "legacy.noise_sensitivity",
     # "legacy.answer_accuracy",
     # "response_groundedness",
-
-    # 以下のcollectionsは、evaluate()に未対応か（ascoreをループするしかないか）
-    # "collections.context_precision",
-    # "collections.context_utilization",
-    # "collections.context_entity_recall",
-    # "collections.noise_sensitivity",
-    # "collections.noise_sensitivity_irrelevant",
-    # "collections.faithfulness",
-    # "collections.answer_accuracy",
-    # "collections.context_relevance",
 ]
