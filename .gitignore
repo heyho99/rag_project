@@ -5,6 +5,7 @@ rag_opensearch/ocr_tesseract/
 rag_evaluate/pdf2md_per_pages/
 rag_evaluate/testsets/
 rag_evaluate/datasets/
+rag_evaluate/eval_results/
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/venv,python

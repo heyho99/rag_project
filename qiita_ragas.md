@@ -1,35 +1,15 @@
 ## はじめに
+前回：
+URL
 
-RAG（Retrieval-Augmented Generation）システムを作ったあとに、
-「**どのくらいちゃんと動いているのか？**」「**どこを改善すべきか？**」を定量的に知りたいと思い、
-Ragas を使って評価パイプラインを組んでみました。
+前回はOpensearchを使ったハイブリッドRAGをご紹介しました。
+今回はRagasを使ってRAGの性能を評価していきます。
 
-この記事では、前回のハイブリッドRAG（OpenSearch + Gemini）の実装を前提に、
 
-- **何を使ったか**（Ragas / OpenAI / Gemini / 既存の RAG 実装）
-- **どう動かすか**（コマンドと実行の順番）
-- **どんな結果が出るか**（メトリクス例）
+前回記事の `rag_opensearch/` を動かしてインデックス作成まで済んでいる状態を前提にしています。
 
-だけをシンプルにまとめます。
-
-この記事は **前回記事（qiita_rag.md）を読んだあと**に見る想定です。
-先に `rag_opensearch/` を動かしてインデックス作成まで済んでいる状態を前提にしています。
-
-- リポジトリ: https://github.com/heyho99/rag_project
-
-まだ clone していない場合は、まずここからです：
-
-```bash
-git clone https://github.com/heyho99/rag_project
-cd rag_project
-```
-
-特に、次の 4 ステップを **この順番で必ず実行する必要がある** ので、その点を明示しておきます。
-
-1. [pdf2md_per_pages.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/pdf2md_per_pages.py:0:0-0:0) で PDF → Markdown チャンクを作る  
-2. [create_testset.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/create_testset.py:0:0-0:0) でテストセット（質問＋理想回答）を作る  
-3. [create_dataset.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/create_dataset.py:0:0-0:0) で RAG を実行した結果付きデータセットを作る  
-4. [evaluate_rag.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/evaluate_rag.py:0:0-0:0) で Ragas による評価を行う  
+### リポジトリ
+https://github.com/heyho99/rag_project
 
 
 ## 目次
@@ -39,7 +19,7 @@ cd rag_project
 - [ディレクトリ構成](#ディレクトリ構成)
 - [全体の流れと実行順序](#全体の流れと実行順序)
 - [セットアップ](#セットアップ)
-- [Step 1: PDF → Markdown チャンク生成 (pdf2md_per_pages)](#step-1-pdf--markdown-チャンク生成-pdf2md_per_pages)
+- [Step 1: Ragasでテストセットを作成するためのMDファイルを作成(pdf2md_per_pages)](#step-1-pdf--markdown-チャンク生成-pdf2md_per_pages)
 - [Step 2: テストセット生成 (create_testset.py)](#step-2-テストセット生成-create_testsetpy)
 - [Step 3: 評価用データセット作成 (create_dataset.py)](#step-3-評価用データセット作成-create_datasetpy)
 - [Step 4: RAG を Ragas で評価 (evaluate_rag.py)](#step-4-rag-を-ragas-で評価-evaluate_ragpy)
@@ -100,7 +80,7 @@ rag_project/
 
 この評価パイプラインは、**必ず次の順番で実行する前提**で設計しています。
 
-1. **Step 1: PDF → Markdown チャンク生成（[pdf2md_per_pages.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/pdf2md_per_pages.py:0:0-0:0)）**  
+1. **Step 1:  Ragasでテストセットを作成するためのMDファイルを作成（[pdf2md_per_pages.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/pdf2md_per_pages.py:0:0-0:0)）**  
    - 入力: `docs/*.pdf`  
    - 出力: `rag_evaluate/pdf2md_per_pages/*.md`
 2. **Step 2: テストセット生成（[create_testset.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/create_testset.py:0:0-0:0)）**  
@@ -316,48 +296,11 @@ python -m rag_evaluate.evaluate_rag
 
 他のメトリクスも `EVAL_METRICS` に名前を追加するだけで有効化できるようにしてあります。
 
-
-## 実行結果の例
-
-実際のログやメトリクスの出力は環境によって変わりますが、イメージとしては次のような形になります。
-
-### 1. create_dataset 実行ログの例
+### evaluate_rag 実行結果の例
 
 ```text
-📄 入力CSV: /home/ouchi/rag_project/rag_evaluate/testsets/testset_20251201101757.csv
-✓ テストセット読み込み完了: 5件
-
-=== RAG実行開始 ===
-テストセット数: 5
-RAG方法: rrf
-Top-K: 4
-
-[1/5] 質問: 保険会社は持続可能なビジネスモデルを構築するために、どのような取組みを求...
-  ✓ 完了 (検索ドキュメント数: 4)
-
-[2/5] 質問: 令和5年度神戸市観光動向調査において、女性比率が高い地区はどこですか...
-  ✓ 完了 (検索ドキュメント数: 4)
-
-...
-
-=== RAG実行完了 ===
-✅ データセットを保存しました: /home/ouchi/rag_project/rag_evaluate/datasets/dataset_20251201_111112.csv
-   レコード数: 5
-```
-
-### 2. evaluate_rag 実行結果の例
-
-```text
-EvaluationResult(
-  metrics=['llm_context_recall', 'context_entity_recall', 'context_relevance'],
-  scores={
-    'llm_context_recall': 0.82,
-    'context_entity_recall': 0.76,
-    'context_relevance': 0.88,
-  }
-)
-
-結果CSV: rag_evaluate/eval_results/rag_result_20251201XXXXXX.csv に詳細を保存しました
+Evaluating: 100%|██████████████████████████████████| 18/18 [01:28<00:00,  4.94s/it]
+{'context_recall': 0.5873, 'context_entity_recall': 0.3107, 'nv_context_relevance': 0.7500}
 ```
 
 CSV 側では、各質問ごとに個別スコアが出ているので、  
@@ -382,7 +325,7 @@ CSV 側では、各質問ごとに個別スコアが出ているので、
 ここからは、記事中で触れたスクリプトの中身を、コード抜粋ベースで少しだけ補足します。  
 （詳細は GitHub の該当ファイルを参照してください。）
 
-### 1. PDF → Markdown 変換（[pdf2md_per_pages.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/pdf2md_per_pages.py:0:0-0:0)）
+### 1. Ragasでテストセットを作成するためのMDファイルを作成（[pdf2md_per_pages.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/pdf2md_per_pages.py:0:0-0:0)）
 
 - [split_pdf_into_chunks()](cci:1://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/pdf2md_per_pages.py:39:0-85:26) で PDF を `PDF2MD_PAGES_PER_CHUNK` ページごとの一時 PDF に分割
 - 各チャンクを `GeminiPDFConverterModel` に渡して Markdown を生成
