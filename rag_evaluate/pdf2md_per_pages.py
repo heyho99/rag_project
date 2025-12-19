@@ -26,7 +26,7 @@ from rag_evaluate.config import (
     PDF2MD_OUTPUT_DIR,
     PDF2MD_MODEL_NAME,
     PDF2MD_TEMPERATURE,
-    PDF2MD_THINKING_BUDGET,
+    PDF2MD_THINKING_LEVEL,
     PDF2MD_MAX_OUTPUT_TOKENS,
     PDF2MD_PAGES_PER_CHUNK,
     PDF2MD_PROMPT,
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     llm_model = GeminiPDFConverterModel(
         model_name=model_name,
         temperature=PDF2MD_TEMPERATURE,
-        thinking_budget=PDF2MD_THINKING_BUDGET,
+        thinking_level=PDF2MD_THINKING_LEVEL,
         max_output_tokens=PDF2MD_MAX_OUTPUT_TOKENS,
     )
 

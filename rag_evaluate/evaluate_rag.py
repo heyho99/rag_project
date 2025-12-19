@@ -184,10 +184,10 @@ async def main():
 
     # evaluator_llm = LangchainLLMWrapper(GoogleGenerativeAI(
     #     google_api_key=gemini_api_key,
-    #     model="gemini-2.5-pro",
+    #     model="gemini-3-flash-preview",
     #     temperature=0.2,
     #     max_tokens=10000,
-    #     thinking_budget=128
+    #     thinking_level="HIGH"
     # ))
 
     # metrics

@@ -14,11 +14,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 PDF2MD_INPUT_PATTERN = "docs/*.pdf"
 
 # 使用するGeminiモデル
-PDF2MD_MODEL_NAME = "gemini-2.5-pro"
+PDF2MD_MODEL_NAME = "gemini-3-flash-preview"
 
 # LLMパラメータ
 PDF2MD_TEMPERATURE = 1.0
-PDF2MD_THINKING_BUDGET = 128
+PDF2MD_THINKING_LEVEL = "HIGH"
 PDF2MD_MAX_OUTPUT_TOKENS = 10000
 
 # 出力Markdownのディレクトリ（プロジェクトルートからの相対パス）
@@ -79,10 +79,10 @@ EVAL_INPUT_CSV = "rag_evaluate/testsets/testset_20251201101757.csv"
 EVAL_TESTSETS_DIR = "outputs/testdatas/testsets"
 
 EVAL_DATASET_OUTPUT_DIR = "rag_evaluate/datasets"
-EVAL_LLM_MODEL_NAME = "gemini-2.5-pro"
+EVAL_LLM_MODEL_NAME = "gemini-3-flash-preview"
 EVAL_LLM_TEMPERATURE = 0.7
 EVAL_LLM_MAX_OUTPUT_TOKENS = 10000
-EVAL_LLM_THINKING_BUDGET = 128
+EVAL_LLM_THINKING_LEVEL = "HIGH"
 EVAL_RAG_METHOD = "rrf"
 EVAL_RAG_TOP_K = 4
 EVAL_RAG_RRF_RANK_CONSTANT = 60

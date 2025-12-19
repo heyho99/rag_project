@@ -12,6 +12,18 @@ Ragas を使って評価パイプラインを組んでみました。
 
 だけをシンプルにまとめます。
 
+この記事は **前回記事（qiita_rag.md）を読んだあと**に見る想定です。
+先に `rag_opensearch/` を動かしてインデックス作成まで済んでいる状態を前提にしています。
+
+- リポジトリ: https://github.com/heyho99/rag_project
+
+まだ clone していない場合は、まずここからです：
+
+```bash
+git clone https://github.com/heyho99/rag_project
+cd rag_project
+```
+
 特に、次の 4 ステップを **この順番で必ず実行する必要がある** ので、その点を明示しておきます。
 
 1. [pdf2md_per_pages.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/for_blog/rag_evaluate/pdf2md_per_pages.py:0:0-0:0) で PDF → Markdown チャンクを作る  
@@ -119,10 +131,11 @@ for_blog/
 ### 1. 仮想環境と依存パッケージ
 
 前回記事と同様、リポジトリ直下で仮想環境を作り、依存を入れます。
+（前回記事で clone 済みなら `git clone` / `cd` はスキップでOKです）
 
 ```bash
-git clone <リポジトリURL>
-cd <repository>
+git clone https://github.com/heyho99/rag_project
+cd rag_project
 
 python -m venv venv
 source venv/bin/activate  # Windowsなら: venv\Scripts\activate

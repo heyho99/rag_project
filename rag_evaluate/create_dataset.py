@@ -13,6 +13,7 @@ from rag_evaluate.config import (
     EVAL_TESTSETS_DIR,
     EVAL_DATASET_OUTPUT_DIR,
     EVAL_LLM_MODEL_NAME,
+    EVAL_LLM_THINKING_LEVEL,
     EVAL_RAG_METHOD,
     EVAL_RAG_TOP_K,
     EVAL_RAG_RRF_RANK_CONSTANT,
@@ -191,6 +192,7 @@ def main():
 
     llm_model = GeminiRAGModel(
         model_name=EVAL_LLM_MODEL_NAME,
+        thinking_level=EVAL_LLM_THINKING_LEVEL,
     )
 
     # RAGを実行

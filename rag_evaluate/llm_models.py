@@ -53,7 +53,7 @@ class BaseGeminiModel(LLMModel):
         model_name: str,
         temperature: float = 0.4,
         max_output_tokens: int = 65536,
-        thinking_budget: int = 0
+        thinking_level: str = "HIGH"
     ):
         """
         Geminiモデルの基本初期化
@@ -61,7 +61,7 @@ class BaseGeminiModel(LLMModel):
         Args:
             model_name (str): 使用するGeminiモデル名
             temperature (float): 温度パラメータ
-            thinking_budget (int): 思考予算（トークン数）
+            thinking_level (str): 思考レベル
         """
         self.api_key = os.getenv("GEMINI_API_KEY")
         if not self.api_key:
@@ -71,7 +71,7 @@ class BaseGeminiModel(LLMModel):
         self.client = genai.Client(api_key=self.api_key)
         self.model_name = model_name
         self.temperature = temperature
-        self.thinking_budget = thinking_budget
+        self.thinking_level = thinking_level
         self.max_output_tokens = max_output_tokens
 
     def _handle_api_error(self, e: Exception, model_class_name: str) -> str:
@@ -129,8 +129,7 @@ class GeminiPDFConverterModel(BaseGeminiModel):
                 config=types.GenerateContentConfig(
                     temperature=self.temperature,
                     max_output_tokens=self.max_output_tokens,
-                    thinking_config=types.ThinkingConfig(thinking_budget=self.thinking_budget) # 思考予算を設定（proは128以上）
-                    # thinking_config=types.ThinkingConfig(thinking_budget=-1) # 動的思考
+                    thinking_config=types.ThinkingConfig(thinking_level=self.thinking_level)
                 )
             )
             
