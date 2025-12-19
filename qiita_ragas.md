@@ -19,11 +19,11 @@ https://github.com/heyho99/rag_project
 - [ディレクトリ構成](#ディレクトリ構成)
 - [全体の流れと実行順序](#全体の流れと実行順序)
 - [セットアップ](#セットアップ)
-- [Step 1: Ragasでテストセットを作成するためのMDファイルを作成(pdf2md_per_pages)](#step-1-pdf--markdown-チャンク生成-pdf2md_per_pages)
+- [Step 1: Ragasでテストセットを作成するためのMDファイルを作成(pdf2md_per_pages)](#step-1-ragasでテストセットを作成するためのmdファイルを作成-pdf2md_per_pagespy)
+- 
 - [Step 2: テストセット生成 (create_testset.py)](#step-2-テストセット生成-create_testsetpy)
 - [Step 3: 評価用データセット作成 (create_dataset.py)](#step-3-評価用データセット作成-create_datasetpy)
 - [Step 4: RAG を Ragas で評価 (evaluate_rag.py)](#step-4-rag-を-ragas-で評価-evaluate_ragpy)
-- [実行結果の例](#実行結果の例)
 - [重要なポイント](#重要なポイント)
 - [以下実装内容をもう少し解説](#以下実装内容をもう少し解説)
 - [まとめ](#まとめ)
@@ -172,7 +172,7 @@ Step 2 / Step 3 を実行するたびに CSV のファイル名が変わるの�
 **最新の CSV パスに合わせて `EVAL_INPUT_CSV` / `EVAL_DATASET_CSV_PATH` を更新する**運用を想定しています。
 
 
-## Step 1: Ragasでテストセットを作成するためのMDファイルを作成 (pdf2md_per_pages)
+## Step 1: Ragasでテストセットを作成するためのMDファイルを作成 (pdf2md_per_pages.py)
 
 Ragasではテストセットを自動で作成できますが、**複数のある程度の文字数のマークダウンファイル**があると、きれいに作成されます。
 よって、最初にソースPDFを適当なページ数で区切って、マークダウンファイルに分割します。
@@ -469,5 +469,4 @@ def build_metrics(evaluator_llm) -> list:
   「どの質問で RAG が弱いのか」「どのメトリクスが特に低いのか」などを、  
   ログや CSV を見ながら後から振り返りやすい構成にしています。
 
-あとは、使いたいメトリクスや評価用 LLM を [rag_evaluate/config.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/config.py:0:0-0:0) や `EVAL_METRICS` で入れ替えつつ、  
-自分のデータセット・自分の RAG 実装に合わせてカスタマイズしていく想定です。
+あとは、使いたいメトリクスや評価用 LLM を [rag_evaluate/config.py](cci:7://file://wsl.localhost/Ubuntu/home/ouchi/rag_project/rag_evaluate/config.py:0:0-0:0) や `EVAL_METRICS` で入れ替えつつ、  自分のデータセット・自分の RAG 実装に合わせてカスタマイズしていく想定です。
