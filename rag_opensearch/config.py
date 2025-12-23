@@ -21,7 +21,7 @@ INDEX_FILE_PATTERNS = [
 # Gemini Setting
 GEMINI_EMBEDDING_MODEL_NAME = "gemini-embedding-001"
 RAG_LLM_MODEL_NAME = "gemini-3-pro-preview"
-RAG_LLM_THINKING_LEVEL = "HIGH"
+RAG_LLM_THINKING_LEVEL = "HIGH" # HIGH/LOW（flashはMEDIUM,MINIMALもある）
 
 # OCR Setting
 OCR_INPUT_PATTERN = "docs/*.pdf"
