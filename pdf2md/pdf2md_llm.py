@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-python -m src.pdf2text.pdf2md_llm
+python -m pdf2md.pdf2md_llm
 ※ 13000文字程度までしかgeminiは生成してくれない
 """
 
@@ -11,7 +11,17 @@ import glob
 import re
 from datetime import datetime
 from pathlib import Path
-from ..llm_components.llm_models import LLMModel
+
+from pdf2md.config import (
+    PDF_INPUT_GLOB,
+    GEMINI_MD_OUTPUT_DIR,
+    GEMINI_PDF2MD_MODEL_NAME,
+    GEMINI_PDF2MD_TEMPERATURE,
+    GEMINI_PDF2MD_THINKING_LEVEL,
+    GEMINI_PDF2MD_MAX_OUTPUT_TOKENS,
+    GEMINI_PDF2MD_PROMPT,
+)
+from pdf2md.llm_models import LLMModel, GeminiPDFConverterModel
 
 
 
@@ -63,7 +73,6 @@ def generate_output_filename(output_dir: str, pdf_path: str, model_name: str) ->
         str: 出力ファイル名（フルパス）
     """
     # 出力ディレクトリの作成
-    output_dir = output_dir
     os.makedirs(output_dir, exist_ok=True)
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -77,34 +86,30 @@ if __name__ == "__main__":
     # 必要設定 ====================================================================
 
     # 出力ディレクトリパス
-    output_dir = "outputs/pdf2md_llm"
-    # output_dir = "outputs/pdf2text_llm"
-    os.makedirs(output_dir, exist_ok=True) # ディレクトリの存在確認と作成
+    project_root = Path(__file__).resolve().parents[1]
+    output_dir = str(project_root / GEMINI_MD_OUTPUT_DIR)
+    os.makedirs(output_dir, exist_ok=True)
 
     # モデル名の設定
-    model_name = "gemini-2.5-flash"
+    model_name = GEMINI_PDF2MD_MODEL_NAME
     
     # LLMモデルのインスタンス作成
-    from ..llm_components.llm_models import GeminiPDFConverterModel
     llm_model = GeminiPDFConverterModel(
         model_name=model_name,
-        temperature=1.0,
-        thinking_budget=0,
-        max_output_tokens=65536
+        temperature=GEMINI_PDF2MD_TEMPERATURE,
+        thinking_level=GEMINI_PDF2MD_THINKING_LEVEL,
+        max_output_tokens=GEMINI_PDF2MD_MAX_OUTPUT_TOKENS,
     )
 
     # 使用するプロンプトの選択
-    from ..llm_components.prompts import *
-    prompt = PDF_CONVERSION_SYSTEM_PROMPT
-    # prompt = PDF_TEXT_EXTRACTION_SYSTEM_PROMPT
+    prompt = GEMINI_PDF2MD_PROMPT
 
     # =============================================================================
-    
 
     # 処理対象PDFパターン
-    # pdf_glob_pattern = "docs/*.pdf"
-    pdf_glob_pattern = "docs/01.pdf"
-    pdf_files = glob.glob(pdf_glob_pattern)
+    pdf_glob_pattern = PDF_INPUT_GLOB
+    pdf_glob_absolute = str(project_root / pdf_glob_pattern)
+    pdf_files = glob.glob(pdf_glob_absolute)
 
     if pdf_files:
         print(f"パターン '{pdf_glob_pattern}' に一致したPDFファイル {len(pdf_files)} 件を検出:")

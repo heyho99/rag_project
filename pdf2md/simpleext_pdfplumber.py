@@ -7,9 +7,16 @@ pdfplumberを使用したPDF→テキスト変換モジュール
 import os
 import pdfplumber
 import argparse
+import glob
 from pathlib import Path
 from datetime import datetime
 from typing import Optional
+
+from pdf2md.config import (
+    PDF_INPUT_GLOB,
+    PDFPLUMBER_TXT_OUTPUT_DIR,
+    PDFPLUMBER_DEBUG_IMAGE_RESOLUTION,
+)
 
 
 class PDFToTextConverter:
@@ -21,7 +28,8 @@ class PDFToTextConverter:
         Args:
             debug_mode (bool): デバッグモード（Trueの場合デバッグ画像を生成）
         """
-        self.output_dir = Path("outputs/simpleext_pdfplumber")
+        project_root = Path(__file__).resolve().parents[1]
+        self.output_dir = project_root / PDFPLUMBER_TXT_OUTPUT_DIR
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         self.debug_mode = debug_mode
@@ -89,7 +97,7 @@ class PDFToTextConverter:
             with pdfplumber.open(pdf_path) as pdf:
                 for page_num, page in enumerate(pdf.pages, 1):
                     # ページ全体の画像を作成
-                    im = page.to_image(resolution=150)
+                    im = page.to_image(resolution=PDFPLUMBER_DEBUG_IMAGE_RESOLUTION)
                     
                     # 文字のバウンディングボックスを描画（赤色）
                     if page.chars:
@@ -210,10 +218,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", help="デバッグ画像を生成する")
     args = parser.parse_args()
     
-    # テスト用のPDFファイルパス
-    test_pdf_paths = [
-        # "docs/01.pdf",
-        "docs/r5_doukou.pdf",
-        # "docs/000108043.pdf"
-    ]
+    project_root = Path(__file__).resolve().parents[1]
+    pdf_glob_absolute = str(project_root / PDF_INPUT_GLOB)
+    test_pdf_paths = sorted(glob.glob(pdf_glob_absolute))
     test_converter(test_pdf_paths, debug_mode=args.debug)
