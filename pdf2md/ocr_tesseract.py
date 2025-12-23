@@ -9,11 +9,18 @@ from typing import Optional
 import pdfplumber
 import pytesseract
 
+from pdf2md.config import (
+    PDF_INPUT_GLOB,
+    TESSERACT_TXT_OUTPUT_DIR,
+    TESSERACT_OCR_DPI,
+    TESSERACT_OCR_LANG,
+)
+
 
 def pdf_to_text(
     pdf_path: str,
-    lang: str = "jpn",
-    resolution: int = 300,
+    lang: str = TESSERACT_OCR_LANG,
+    resolution: int = TESSERACT_OCR_DPI,
 ) -> str:
     """PDF を 1 ページずつ OCR しテキストとして連結する.
 
@@ -37,8 +44,8 @@ def pdf_to_text(
 def pdf_to_text_file(
     pdf_path: str,
     output_path: Optional[str] = None,
-    lang: str = "jpn",
-    resolution: int = 300,
+    lang: str = TESSERACT_OCR_LANG,
+    resolution: int = TESSERACT_OCR_DPI,
 ) -> Path:
     """PDF からテキストを抽出しファイルへ保存する."""
     pdf_path_obj = Path(pdf_path)
@@ -53,10 +60,11 @@ def pdf_to_text_file(
 
 
 def main() -> None:
-    pdf_pattern = "docs/*.pdf"
-    output_dir = Path("outputs/ocr_tesseract")
-    lang = "jpn"
-    dpi = 300
+    project_root = Path(__file__).resolve().parents[1]
+    pdf_pattern = str(project_root / PDF_INPUT_GLOB)
+    output_dir = project_root / TESSERACT_TXT_OUTPUT_DIR
+    lang = TESSERACT_OCR_LANG
+    dpi = TESSERACT_OCR_DPI
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
