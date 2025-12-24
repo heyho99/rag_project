@@ -31,7 +31,7 @@ class BaseOpenSearchRAG(ABC):
         if port is None:
             port = config.OPENSEARCH_PORT
         if index_name is None:
-            index_name = config.get_active_index_name()
+            index_name = config.INDEX_NAME
         if embedding_dim is None:
             embedding_dim = config.EMBEDDING_DIM
         if top_k is None:
@@ -307,7 +307,7 @@ def main():
     ]
     
     rag = get_opensearch_rag(  # embddingはgemini_embeddingで固定
-        index_name=config.get_active_index_name(),
+        index_name=config.INDEX_NAME,
         top_k=config.RAG_TOP_K,
         llm_model=llm_model,
     )

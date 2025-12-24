@@ -176,7 +176,7 @@ def main():
         print("エラー: GEMINI_API_KEY環境変数が設定されていません")
         return
 
-    index_name = config.get_active_index_name()
+    index_name = config.INDEX_NAME
     
     # 日本語に合わせたチャンク分割器
     separators=[
@@ -205,7 +205,7 @@ def main():
     )
     
     # 登録するファイルパターン
-    file_patterns = config.get_active_file_patterns()
+    file_patterns = config.INDEX_FILE_PATTERNS
 
     print("=== ドキュメント登録システム ===\n")
     
