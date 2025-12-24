@@ -81,40 +81,18 @@ RAG_LLM_THINKING_LEVEL = "HIGH"
 
 
 # =============================================================================
-# 3方式比較実験用設定
+# インデックス設定
 # =============================================================================
 
-# --- インデックス名 ---
-INDEX_NAME_GEMINI_MD = "gemini-md"
-INDEX_NAME_PDFPLUMBER_TXT = "pdfplumber-txt"
-INDEX_NAME_TESSERACT_TXT = "tesseract-txt"
+# 使用するインデックス名（変換方式に合わせて変更）
+# 例: "gemini-md", "pdfplumber-txt", "tesseract-txt"
+INDEX_NAME = "tesseract-txt"
 
-# --- 各方式のインデックス対象ファイルパターン ---
-INDEX_FILE_PATTERNS_GEMINI = [f"{GEMINI_MD_OUTPUT_DIR}/*.md"]
-INDEX_FILE_PATTERNS_PDFPLUMBER = [f"{PDFPLUMBER_TXT_OUTPUT_DIR}/*.txt"]
-INDEX_FILE_PATTERNS_TESSERACT = [f"{TESSERACT_TXT_OUTPUT_DIR}/*.txt"]
-
-# --- 現在アクティブな比較対象（切り替えて使用） ---
-# "gemini", "pdfplumber", "tesseract" のいずれかを指定
-ACTIVE_CONVERSION_METHOD = "tesseract"
-
-def get_active_index_name():
-    """現在アクティブな変換方式に対応するインデックス名を返す"""
-    mapping = {
-        "gemini": INDEX_NAME_GEMINI_MD,
-        "pdfplumber": INDEX_NAME_PDFPLUMBER_TXT,
-        "tesseract": INDEX_NAME_TESSERACT_TXT,
-    }
-    return mapping.get(ACTIVE_CONVERSION_METHOD, INDEX_NAME_TESSERACT_TXT)
-
-def get_active_file_patterns():
-    """現在アクティブな変換方式に対応するファイルパターンを返す"""
-    mapping = {
-        "gemini": INDEX_FILE_PATTERNS_GEMINI,
-        "pdfplumber": INDEX_FILE_PATTERNS_PDFPLUMBER,
-        "tesseract": INDEX_FILE_PATTERNS_TESSERACT,
-    }
-    return mapping.get(ACTIVE_CONVERSION_METHOD, INDEX_FILE_PATTERNS_TESSERACT)
+# インデックス対象ファイルパターン（INDEX_NAMEに合わせて変更）
+# 例: gemini → [f"{GEMINI_MD_OUTPUT_DIR}/*.md"]
+#     pdfplumber → [f"{PDFPLUMBER_TXT_OUTPUT_DIR}/*.txt"]
+#     tesseract → [f"{TESSERACT_TXT_OUTPUT_DIR}/*.txt"]
+INDEX_FILE_PATTERNS = [f"{TESSERACT_TXT_OUTPUT_DIR}/*.txt"]
 
 
 # =============================================================================

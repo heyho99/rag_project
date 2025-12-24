@@ -187,7 +187,7 @@ def main():
     # RAGを実行
     # rag_method: 'knn', 'normalize', 'rrf' から選択
     dataset = run_rag_on_testset(
-        index_name=config.get_active_index_name(),
+        index_name=config.INDEX_NAME,
         testset=testset,
         rag_method=config.EVAL_RAG_METHOD,
         top_k=config.RAG_TOP_K,

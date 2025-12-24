@@ -16,9 +16,9 @@
   - OS に tesseract がインストールされている必要があります（例: `tesseract-ocr`）
   - 日本語OCRを使う場合、`jpn` の言語データが必要です
 
-## 設定（すべて `pdf2md/config.py`）
+## 設定（プロジェクトルート `config.py`）
 
-パラメータは `pdf2md/config.py` の定数で管理します。
+パラメータはプロジェクトルートの `config.py` で一元管理します。
 
 - 入力PDF
   - `PDF_INPUT_GLOB`（例: `docs/*.pdf`）
