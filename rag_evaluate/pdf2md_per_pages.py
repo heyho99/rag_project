@@ -20,17 +20,11 @@ from typing import List, Tuple
 from pypdf import PdfReader, PdfWriter
 
 from rag_evaluate.llm_models import LLMModel, GeminiPDFConverterModel
-from rag_evaluate.config import (
-    PROJECT_ROOT,
-    PDF2MD_INPUT_PATTERN,
-    PDF2MD_OUTPUT_DIR,
-    PDF2MD_MODEL_NAME,
-    PDF2MD_TEMPERATURE,
-    PDF2MD_THINKING_LEVEL,
-    PDF2MD_MAX_OUTPUT_TOKENS,
-    PDF2MD_PAGES_PER_CHUNK,
-    PDF2MD_PROMPT,
-)
+
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import config
 
 
 # =============================================================================
@@ -157,27 +151,27 @@ def generate_chunk_output_filename(
 if __name__ == "__main__":
     # 必要設定 ====================================================================
 
-    output_dir = str(PROJECT_ROOT / PDF2MD_OUTPUT_DIR)
+    output_dir = str(config.PROJECT_ROOT / config.PDF2MD_PER_PAGES_OUTPUT_DIR)
     os.makedirs(output_dir, exist_ok=True)
 
-    model_name = PDF2MD_MODEL_NAME
-    pages_per_chunk = PDF2MD_PAGES_PER_CHUNK  # 任意のページ数に変更してください
+    model_name = config.GEMINI_PDF2MD_MODEL_NAME
+    pages_per_chunk = config.PDF2MD_PAGES_PER_CHUNK  # 任意のページ数に変更してください
 
     # LLMモデルのインスタンス作成
     llm_model = GeminiPDFConverterModel(
         model_name=model_name,
-        temperature=PDF2MD_TEMPERATURE,
-        thinking_level=PDF2MD_THINKING_LEVEL,
-        max_output_tokens=PDF2MD_MAX_OUTPUT_TOKENS,
+        temperature=config.GEMINI_PDF2MD_TEMPERATURE,
+        thinking_level=config.GEMINI_PDF2MD_THINKING_LEVEL,
+        max_output_tokens=config.GEMINI_PDF2MD_MAX_OUTPUT_TOKENS,
     )
 
     # 使用するプロンプト
-    prompt = PDF2MD_PROMPT
+    prompt = config.PDF2MD_PER_PAGES_PROMPT
 
     # =============================================================================
 
     # pdf_glob_pattern = "docs/01.pdf"
-    pdf_glob_pattern = str(PROJECT_ROOT / PDF2MD_INPUT_PATTERN)
+    pdf_glob_pattern = str(config.PROJECT_ROOT / config.PDF_INPUT_GLOB)
     pdf_files = glob.glob(pdf_glob_pattern)
 
     if pdf_files:

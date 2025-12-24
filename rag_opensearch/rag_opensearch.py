@@ -5,16 +5,11 @@ from dotenv import load_dotenv
 from opensearchpy import OpenSearch
 from .llm_models import GeminiRAGModel
 from .embedding_models import get_gemini_embedding
-from .config import (
-    OPENSEARCH_HOST,
-    OPENSEARCH_PORT,
-    EMBEDDING_DIM,
-    RAG_INDEX_NAME,
-    RAG_TOP_K,
-    RRF_RANK_CONSTANT,
-    RAG_LLM_MODEL_NAME,
-    RAG_LLM_THINKING_LEVEL,
-)
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import config
 
 load_dotenv()
 
@@ -24,13 +19,23 @@ class BaseOpenSearchRAG(ABC):
     
     def __init__(
         self,
-        host: str = OPENSEARCH_HOST,
-        port: int = OPENSEARCH_PORT,
-        index_name: str = RAG_INDEX_NAME,
-        embedding_dim: int = EMBEDDING_DIM,
-        top_k: int = RAG_TOP_K,
+        host: str = None,
+        port: int = None,
+        index_name: str = None,
+        embedding_dim: int = None,
+        top_k: int = None,
         llm_model = None
     ):
+        if host is None:
+            host = config.OPENSEARCH_HOST
+        if port is None:
+            port = config.OPENSEARCH_PORT
+        if index_name is None:
+            index_name = config.get_active_index_name()
+        if embedding_dim is None:
+            embedding_dim = config.EMBEDDING_DIM
+        if top_k is None:
+            top_k = config.RAG_TOP_K
         # OpenSearchクライアント初期化
         self.client = OpenSearch(
             hosts=[{'host': host, 'port': port}],
@@ -159,14 +164,16 @@ class RRFOpenSearchRAG(BaseOpenSearchRAG):
     
     def __init__(
         self,
-        host: str = OPENSEARCH_HOST,
-        port: int = OPENSEARCH_PORT,
-        index_name: str = RAG_INDEX_NAME,
-        embedding_dim: int = EMBEDDING_DIM,
-        top_k: int = RAG_TOP_K,
+        host: str = None,
+        port: int = None,
+        index_name: str = None,
+        embedding_dim: int = None,
+        top_k: int = None,
         llm_model = None,
-        rank_constant: int = RRF_RANK_CONSTANT
+        rank_constant: int = None
     ):
+        if rank_constant is None:
+            rank_constant = config.RRF_RANK_CONSTANT
         super().__init__(host, port, index_name, embedding_dim, top_k, llm_model)
         self.rank_constant = rank_constant
         self.search_pipeline_name = f"{index_name}-rrf-pipeline"
@@ -267,13 +274,13 @@ class RRFOpenSearchRAG(BaseOpenSearchRAG):
 
 
 def get_opensearch_rag(
-    index_name: str,
-    host: str = OPENSEARCH_HOST,
-    port: int = OPENSEARCH_PORT,
-    embedding_dim: int = EMBEDDING_DIM,
-    top_k: int = RAG_TOP_K,
+    index_name: str = None,
+    host: str = None,
+    port: int = None,
+    embedding_dim: int = None,
+    top_k: int = None,
     llm_model = None,
-    rank_constant: int = RRF_RANK_CONSTANT,
+    rank_constant: int = None,
 ) -> BaseOpenSearchRAG:
     """OpenSearch RAGインスタンスを取得するファクトリ関数"""
     return RRFOpenSearchRAG(
@@ -289,8 +296,8 @@ def main():
     """
     
     llm_model = GeminiRAGModel(
-        model_name=RAG_LLM_MODEL_NAME,
-        thinking_level=RAG_LLM_THINKING_LEVEL,
+        model_name=config.RAG_LLM_MODEL_NAME,
+        thinking_level=config.RAG_LLM_THINKING_LEVEL,
     )
 
     # サンプル質問
@@ -300,8 +307,8 @@ def main():
     ]
     
     rag = get_opensearch_rag(  # embddingはgemini_embeddingで固定
-        index_name=RAG_INDEX_NAME,
-        top_k=RAG_TOP_K,
+        index_name=config.get_active_index_name(),
+        top_k=config.RAG_TOP_K,
         llm_model=llm_model,
     )
 
@@ -309,7 +316,7 @@ def main():
         print(f"\n\n=== 質問: {question} ===")
 
         # Dict{query:str, answer:str, sources:[{id:str, filename:str, chunk_index:int, page:int, score:float, content:str}]}
-        result = rag.answer(question, k=RAG_TOP_K, verbose=True) 
+        result = rag.answer(question, k=config.RAG_TOP_K, verbose=True) 
         print(f"\n\n{result}\n\n")
     
 

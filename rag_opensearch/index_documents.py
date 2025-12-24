@@ -8,15 +8,11 @@ from dotenv import load_dotenv
 from opensearchpy import OpenSearch
 
 from .embedding_models import get_gemini_embedding
-from .config import (
-    OPENSEARCH_HOST,
-    OPENSEARCH_PORT,
-    EMBEDDING_DIM,
-    RAG_INDEX_NAME,
-    CHUNK_SIZE,
-    CHUNK_OVERLAP,
-    INDEX_FILE_PATTERNS,
-)
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import config
 
 # .envファイルを読み込み
 load_dotenv()
@@ -28,13 +24,19 @@ class DocumentIndexer:
     def __init__(
         self,
         index_name: str,
-        host: str = OPENSEARCH_HOST,
-        port: int = OPENSEARCH_PORT,
-        embedding_dim: int = EMBEDDING_DIM,
+        host: str = None,
+        port: int = None,
+        embedding_dim: int = None,
         splitter = None
     ):
         if not index_name:
             raise ValueError("index_nameは必須です")
+        if host is None:
+            host = config.OPENSEARCH_HOST
+        if port is None:
+            port = config.OPENSEARCH_PORT
+        if embedding_dim is None:
+            embedding_dim = config.EMBEDDING_DIM
 
         # OpenSearchクライアント初期化
         self.client = OpenSearch(
@@ -174,7 +176,7 @@ def main():
         print("エラー: GEMINI_API_KEY環境変数が設定されていません")
         return
 
-    index_name = RAG_INDEX_NAME
+    index_name = config.get_active_index_name()
     
     # 日本語に合わせたチャンク分割器
     separators=[
@@ -189,8 +191,8 @@ def main():
     
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     splitter = RecursiveCharacterTextSplitter(
-            chunk_size=CHUNK_SIZE,
-            chunk_overlap=CHUNK_OVERLAP,
+            chunk_size=config.CHUNK_SIZE,
+            chunk_overlap=config.CHUNK_OVERLAP,
             separators=separators,
             length_function=len,
             is_separator_regex=False,
@@ -203,7 +205,7 @@ def main():
     )
     
     # 登録するファイルパターン
-    file_patterns = INDEX_FILE_PATTERNS
+    file_patterns = config.get_active_file_patterns()
 
     print("=== ドキュメント登録システム ===\n")
     

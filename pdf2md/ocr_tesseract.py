@@ -9,18 +9,16 @@ from typing import Optional
 import pdfplumber
 import pytesseract
 
-from pdf2md.config import (
-    PDF_INPUT_GLOB,
-    TESSERACT_TXT_OUTPUT_DIR,
-    TESSERACT_OCR_DPI,
-    TESSERACT_OCR_LANG,
-)
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import config
 
 
 def pdf_to_text(
     pdf_path: str,
-    lang: str = TESSERACT_OCR_LANG,
-    resolution: int = TESSERACT_OCR_DPI,
+    lang: str = None,
+    resolution: int = None,
 ) -> str:
     """PDF を 1 ページずつ OCR しテキストとして連結する.
 
@@ -32,6 +30,10 @@ def pdf_to_text(
     Returns:
         連結済みテキスト。ページ毎に区切りを入れる。
     """
+    if lang is None:
+        lang = config.TESSERACT_OCR_LANG
+    if resolution is None:
+        resolution = config.TESSERACT_OCR_DPI
     texts = []
     with pdfplumber.open(pdf_path) as pdf:
         for page_number, page in enumerate(pdf.pages, 1):
@@ -44,8 +46,8 @@ def pdf_to_text(
 def pdf_to_text_file(
     pdf_path: str,
     output_path: Optional[str] = None,
-    lang: str = TESSERACT_OCR_LANG,
-    resolution: int = TESSERACT_OCR_DPI,
+    lang: str = None,
+    resolution: int = None,
 ) -> Path:
     """PDF からテキストを抽出しファイルへ保存する."""
     pdf_path_obj = Path(pdf_path)
@@ -54,6 +56,10 @@ def pdf_to_text_file(
     else:
         output_path_obj = Path(output_path)
 
+    if lang is None:
+        lang = config.TESSERACT_OCR_LANG
+    if resolution is None:
+        resolution = config.TESSERACT_OCR_DPI
     text = pdf_to_text(str(pdf_path_obj), lang=lang, resolution=resolution)
     output_path_obj.write_text(text, encoding="utf-8")
     return output_path_obj
@@ -61,10 +67,10 @@ def pdf_to_text_file(
 
 def main() -> None:
     project_root = Path(__file__).resolve().parents[1]
-    pdf_pattern = str(project_root / PDF_INPUT_GLOB)
-    output_dir = project_root / TESSERACT_TXT_OUTPUT_DIR
-    lang = TESSERACT_OCR_LANG
-    dpi = TESSERACT_OCR_DPI
+    pdf_pattern = str(project_root / config.PDF_INPUT_GLOB)
+    output_dir = project_root / config.TESSERACT_TXT_OUTPUT_DIR
+    lang = config.TESSERACT_OCR_LANG
+    dpi = config.TESSERACT_OCR_DPI
 
     output_dir.mkdir(parents=True, exist_ok=True)
 

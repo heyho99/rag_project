@@ -6,22 +6,11 @@ from pathlib import Path
 from typing import List, Dict
 import sys
 
-from rag_evaluate.config import (
-    PROJECT_ROOT,
-    EVAL_INDEX_NAME,
-    EVAL_INPUT_CSV,
-    EVAL_TESTSETS_DIR,
-    EVAL_DATASET_OUTPUT_DIR,
-    EVAL_LLM_MODEL_NAME,
-    EVAL_LLM_THINKING_LEVEL,
-    EVAL_RAG_METHOD,
-    EVAL_RAG_TOP_K,
-    EVAL_RAG_RRF_RANK_CONSTANT,
-)
-
 # プロジェクトルートをパスに追加
-project_root = PROJECT_ROOT
+project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
+
+import config
 
 from rag_opensearch.rag_opensearch import get_opensearch_rag
 from rag_opensearch.llm_models import GeminiRAGModel
@@ -134,7 +123,7 @@ def save_dataset_csv(dataset: List[Dict], output_dir: str = None):
         output_dir: 出力ディレクトリ
     """
     if output_dir is None:
-        output_dir = project_root / EVAL_DATASET_OUTPUT_DIR
+        output_dir = project_root / config.EVAL_DATASET_OUTPUT_DIR
     else:
         output_dir = Path(output_dir)
     
@@ -172,13 +161,13 @@ def main():
         python -m src.ragas.create_dataset
     """
     # 入力CSVファイルのパスを指定
-    input_csv_path = project_root / EVAL_INPUT_CSV
+    input_csv_path = project_root / config.EVAL_INPUT_CSV
     
     # CSVファイルが存在するか確認
     if not input_csv_path.exists():
         print(f"❌ エラー: CSVファイルが見つかりません: {input_csv_path}")
         print("\n利用可能なテストセット:")
-        testsets_dir = project_root / EVAL_TESTSETS_DIR
+        testsets_dir = project_root / config.CREATE_TESTSET_OUTPUT_DIR
         if testsets_dir.exists():
             for csv_file in testsets_dir.glob("*.csv"):
                 print(f"  - {csv_file.name}")
@@ -191,17 +180,17 @@ def main():
     print(f"✓ テストセット読み込み完了: {len(testset)}件\n")
 
     llm_model = GeminiRAGModel(
-        model_name=EVAL_LLM_MODEL_NAME,
-        thinking_level=EVAL_LLM_THINKING_LEVEL,
+        model_name=config.EVAL_LLM_MODEL_NAME,
+        thinking_level=config.EVAL_LLM_THINKING_LEVEL,
     )
 
     # RAGを実行
     # rag_method: 'knn', 'normalize', 'rrf' から選択
     dataset = run_rag_on_testset(
-        index_name=EVAL_INDEX_NAME,
+        index_name=config.get_active_index_name(),
         testset=testset,
-        rag_method=EVAL_RAG_METHOD,
-        top_k=EVAL_RAG_TOP_K,
+        rag_method=config.EVAL_RAG_METHOD,
+        top_k=config.RAG_TOP_K,
         llm_model=llm_model,
         ## normalize の場合の追加パラメータ例:
         # knn_weight=0.7,
@@ -209,7 +198,7 @@ def main():
         # normalization_technique='min_max',
         # combination_technique='arithmetic_mean'
         # rrf の場合の追加パラメータ例:
-        rank_constant=EVAL_RAG_RRF_RANK_CONSTANT,
+        rank_constant=config.RRF_RANK_CONSTANT,
     )
     
     # データセットを保存

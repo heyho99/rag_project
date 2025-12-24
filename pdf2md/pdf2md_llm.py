@@ -12,15 +12,10 @@ import re
 from datetime import datetime
 from pathlib import Path
 
-from pdf2md.config import (
-    PDF_INPUT_GLOB,
-    GEMINI_MD_OUTPUT_DIR,
-    GEMINI_PDF2MD_MODEL_NAME,
-    GEMINI_PDF2MD_TEMPERATURE,
-    GEMINI_PDF2MD_THINKING_LEVEL,
-    GEMINI_PDF2MD_MAX_OUTPUT_TOKENS,
-    GEMINI_PDF2MD_PROMPT,
-)
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import config
 from pdf2md.llm_models import LLMModel, GeminiPDFConverterModel
 
 
@@ -87,27 +82,27 @@ if __name__ == "__main__":
 
     # 出力ディレクトリパス
     project_root = Path(__file__).resolve().parents[1]
-    output_dir = str(project_root / GEMINI_MD_OUTPUT_DIR)
+    output_dir = str(project_root / config.GEMINI_MD_OUTPUT_DIR)
     os.makedirs(output_dir, exist_ok=True)
 
     # モデル名の設定
-    model_name = GEMINI_PDF2MD_MODEL_NAME
+    model_name = config.GEMINI_PDF2MD_MODEL_NAME
     
     # LLMモデルのインスタンス作成
     llm_model = GeminiPDFConverterModel(
         model_name=model_name,
-        temperature=GEMINI_PDF2MD_TEMPERATURE,
-        thinking_level=GEMINI_PDF2MD_THINKING_LEVEL,
-        max_output_tokens=GEMINI_PDF2MD_MAX_OUTPUT_TOKENS,
+        temperature=config.GEMINI_PDF2MD_TEMPERATURE,
+        thinking_level=config.GEMINI_PDF2MD_THINKING_LEVEL,
+        max_output_tokens=config.GEMINI_PDF2MD_MAX_OUTPUT_TOKENS,
     )
 
     # 使用するプロンプトの選択
-    prompt = GEMINI_PDF2MD_PROMPT
+    prompt = config.GEMINI_PDF2MD_PROMPT
 
     # =============================================================================
 
     # 処理対象PDFパターン
-    pdf_glob_pattern = PDF_INPUT_GLOB
+    pdf_glob_pattern = config.PDF_INPUT_GLOB
     pdf_glob_absolute = str(project_root / pdf_glob_pattern)
     pdf_files = glob.glob(pdf_glob_absolute)
 

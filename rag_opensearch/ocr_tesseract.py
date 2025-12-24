@@ -8,10 +8,10 @@ from typing import Optional
 
 import pdfplumber
 import pytesseract
-try:
-    from .config import OCR_INPUT_PATTERN, OCR_OUTPUT_DIR, OCR_LANG, OCR_DPI
-except ImportError:  # pragma: no cover
-    from config import OCR_INPUT_PATTERN, OCR_OUTPUT_DIR, OCR_LANG, OCR_DPI
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import config
 
 
 def pdf_to_text(
@@ -57,10 +57,10 @@ def pdf_to_text_file(
 
 
 def main() -> None:
-    pdf_pattern = OCR_INPUT_PATTERN
-    output_dir = Path(OCR_OUTPUT_DIR)
-    lang = OCR_LANG
-    dpi = OCR_DPI
+    pdf_pattern = config.PDF_INPUT_GLOB
+    output_dir = Path(config.TESSERACT_TXT_OUTPUT_DIR)
+    lang = config.TESSERACT_OCR_LANG
+    dpi = config.TESSERACT_OCR_DPI
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
