@@ -31,24 +31,15 @@ from ragas.testset.transforms import (
     apply_transforms,
 )
 
-from rag_evaluate.config import (
-    PROJECT_ROOT,
-    CREATE_TESTSET_OUTPUT_DIR,
-    CREATE_TESTSET_LLM_MODEL_NAME,
-    CREATE_TESTSET_LLM_TEMPERATURE,
-    CREATE_TESTSET_EMBEDDING_MODEL_NAME,
-    CREATE_TESTSET_SIZE,
-    CREATE_TESTSET_HEADLINE_WEIGHT,
-    CREATE_TESTSET_KEYPHRASE_WEIGHT,
-    CREATE_TESTSET_HEADLINE_MAX,
-    CREATE_TESTSET_SPLITTER_MAX_TOKENS,
-    CREATE_TESTSET_CHUNK_MDS_GLOB,
-)
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import config
 
 load_dotenv()
 
-project_root = PROJECT_ROOT
+project_root = config.PROJECT_ROOT
 def build_knowledge_graph_from_documents(docs: Sequence[Document]) -> KnowledgeGraph:
     """ドキュメント群からKnowledge Graphを構築する。"""
     kg = KnowledgeGraph()
@@ -68,10 +59,14 @@ def build_knowledge_graph_from_documents(docs: Sequence[Document]) -> KnowledgeG
 def apply_default_transforms(
     kg: KnowledgeGraph,
     llm: LangchainLLMWrapper,
-    headline_max: int = CREATE_TESTSET_HEADLINE_MAX,
-    splitter_max_tokens: int = CREATE_TESTSET_SPLITTER_MAX_TOKENS,
+    headline_max: int = None,
+    splitter_max_tokens: int = None,
 ) -> None:
     """見出し抽出・分割・キーフレーズ抽出の変換を適用する。"""
+    if headline_max is None:
+        headline_max = config.CREATE_TESTSET_HEADLINE_MAX
+    if splitter_max_tokens is None:
+        splitter_max_tokens = config.CREATE_TESTSET_SPLITTER_MAX_TOKENS
     transforms = [
         HeadlinesExtractor(llm=llm, max_num=headline_max),
         HeadlineSplitter(max_tokens=splitter_max_tokens),
@@ -131,14 +126,14 @@ def main() -> None:
         raise ValueError("OPENAI_API_KEYが設定されていません。.envファイルを確認してください。") 
     
     # llm_model_name = "gpt-5" # 2個作成で1$ 20個作成で2$?
-    llm_model_name = CREATE_TESTSET_LLM_MODEL_NAME
-    embedding_model_name = CREATE_TESTSET_EMBEDDING_MODEL_NAME
+    llm_model_name = config.CREATE_TESTSET_LLM_MODEL_NAME
+    embedding_model_name = config.CREATE_TESTSET_EMBEDDING_MODEL_NAME
 
     # gpt-5-miniはtemperature=1のみサポート（デフォルト値）
     generator_llm = LangchainLLMWrapper(
         ChatOpenAI(
         model=llm_model_name,
-        temperature=CREATE_TESTSET_LLM_TEMPERATURE,
+        temperature=config.CREATE_TESTSET_LLM_TEMPERATURE,
         ),
         bypass_temperature=True  # temperatureをユーザで変更できるようにする設定
     )
@@ -147,14 +142,14 @@ def main() -> None:
     generator_embeddings = OpenAIEmbeddings(client=openai_client, model=embedding_model_name)
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    output_dir = project_root / CREATE_TESTSET_OUTPUT_DIR
+    output_dir = project_root / config.CREATE_TESTSET_OUTPUT_DIR
     output_csv_path = output_dir / f"testset_{timestamp}.csv"
 
-    testset_size = CREATE_TESTSET_SIZE
-    headline_weight = CREATE_TESTSET_HEADLINE_WEIGHT
-    keyphrase_weight = CREATE_TESTSET_KEYPHRASE_WEIGHT
+    testset_size = config.CREATE_TESTSET_SIZE
+    headline_weight = config.CREATE_TESTSET_HEADLINE_WEIGHT
+    keyphrase_weight = config.CREATE_TESTSET_KEYPHRASE_WEIGHT
 
-    chunk_mds_glob_pattern = CREATE_TESTSET_CHUNK_MDS_GLOB  # testset作成用マークダウンファイル
+    chunk_mds_glob_pattern = config.CREATE_TESTSET_CHUNK_MDS_GLOB  # testset作成用マークダウンファイル
     print("\n取得したファイルリスト:")
     for file in glob.glob(chunk_mds_glob_pattern):
         print(file)

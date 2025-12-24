@@ -6,8 +6,12 @@ from typing import List, Union
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+from pathlib import Path
 
-from .config import GEMINI_EMBEDDING_MODEL_NAME, EMBEDDING_DIM
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import config
 
 # .envファイルを読み込み
 load_dotenv()
@@ -18,8 +22,8 @@ class GeminiEmbedding:
     
     def __init__(
         self, 
-        model: str = GEMINI_EMBEDDING_MODEL_NAME,
-        output_dimensionality: int = EMBEDDING_DIM,
+        model: str = None,
+        output_dimensionality: int = None,
         task_type: str = "RETRIEVAL_DOCUMENT"
     ):
         """
@@ -28,6 +32,10 @@ class GeminiEmbedding:
             output_dimensionality: 出力次元数（推奨: 768, 1536, 3072。デフォルト: 3072）
             task_type: タスクタイプ（RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY, SEMANTIC_SIMILARITYなど）
         """
+        if model is None:
+            model = config.GEMINI_EMBEDDING_MODEL_NAME
+        if output_dimensionality is None:
+            output_dimensionality = config.EMBEDDING_DIM
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
             raise ValueError("GEMINI_API_KEY環境変数が設定されていません")
@@ -122,8 +130,8 @@ class GeminiEmbedding:
 
 
 def get_gemini_embedding(
-    model: str = GEMINI_EMBEDDING_MODEL_NAME,
-    output_dimensionality: int = EMBEDDING_DIM,
+    model: str = None,
+    output_dimensionality: int = None,
     task_type: str = "RETRIEVAL_DOCUMENT"
 ) -> GeminiEmbedding:
     """Gemini埋め込みモデルを取得
