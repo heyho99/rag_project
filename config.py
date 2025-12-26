@@ -30,7 +30,7 @@ TESSERACT_TXT_OUTPUT_DIR = "pdf2md/coverted_texts/tesseract_txt"
 GEMINI_PDF2MD_MODEL_NAME = "gemini-3-flash-preview"
 GEMINI_PDF2MD_TEMPERATURE = 1.0
 GEMINI_PDF2MD_THINKING_LEVEL = "HIGH"
-GEMINI_PDF2MD_MAX_OUTPUT_TOKENS = 10000
+GEMINI_PDF2MD_MAX_OUTPUT_TOKENS = 100000
 
 GEMINI_PDF2MD_PROMPT = """あなたはPDFのテキストを正確なマークダウン形式に変換する専門家です。
 以下のルールに従って変換してください：
@@ -46,13 +46,12 @@ GEMINI_PDF2MD_PROMPT = """あなたはPDFのテキストを正確なマークダ
 
 変換後は、元の情報を失わず、かつマークダウンとして正しく表示されるようにしてください。"""
 
+# --- pdfplumber ---
+PDFPLUMBER_DEBUG_IMAGE_RESOLUTION = 300
+
 # --- Tesseract OCR ---
 TESSERACT_OCR_LANG = "jpn"
 TESSERACT_OCR_DPI = 300
-
-# --- pdfplumber ---
-PDFPLUMBER_DEBUG_IMAGE_RESOLUTION = 150
-
 
 # =============================================================================
 # OpenSearch / RAG設定（rag_opensearch）
@@ -72,27 +71,23 @@ CHUNK_OVERLAP = 200
 CHUNK_OUTPUT_DIR = "outputs/chunks"
 
 # --- RAG検索 ---
-RAG_TOP_K = 4
+RAG_TOP_K = 2
 RRF_RANK_CONSTANT = 60
 
 # --- RAG用LLM ---
 RAG_LLM_MODEL_NAME = "gemini-3-pro-preview"
-RAG_LLM_THINKING_LEVEL = "HIGH"
-
-
-# =============================================================================
-# インデックス設定
-# =============================================================================
+RAG_LLM_THINKING_LEVEL = "LOW"
 
 # 使用するインデックス名（変換方式に合わせて変更）
-# 例: "gemini-md", "pdfplumber-txt", "tesseract-txt"
-INDEX_NAME = "tesseract-txt"
+# INDEX_NAME = "tesseract-txt"
+# INDEX_NAME = "pdfplumber-txt"
+INDEX_NAME = "gemini-md"
 
 # インデックス対象ファイルパターン（INDEX_NAMEに合わせて変更）
-# 例: gemini → [f"{GEMINI_MD_OUTPUT_DIR}/*.md"]
-#     pdfplumber → [f"{PDFPLUMBER_TXT_OUTPUT_DIR}/*.txt"]
-#     tesseract → [f"{TESSERACT_TXT_OUTPUT_DIR}/*.txt"]
-INDEX_FILE_PATTERNS = [f"{TESSERACT_TXT_OUTPUT_DIR}/*.txt"]
+# INDEX_FILE_PATTERNS = ["rag_opensearch/ocr_tesseract/*.txt"]
+# INDEX_FILE_PATTERNS = [f"{TESSERACT_TXT_OUTPUT_DIR}/*.txt"]
+# INDEX_FILE_PATTERNS = [f"{PDFPLUMBER_TXT_OUTPUT_DIR}/*.txt"]
+INDEX_FILE_PATTERNS = [f"{GEMINI_MD_OUTPUT_DIR}/*.md"]
 
 
 # =============================================================================
@@ -116,7 +111,7 @@ CREATE_TESTSET_LLM_TEMPERATURE = 0.2
 CREATE_TESTSET_EMBEDDING_MODEL_NAME = "text-embedding-3-small"
 
 # --- テストセット生成パラメータ ---
-CREATE_TESTSET_SIZE = 5
+CREATE_TESTSET_SIZE = 20  # 生成するテストセットの数
 CREATE_TESTSET_HEADLINE_WEIGHT = 0.5
 CREATE_TESTSET_KEYPHRASE_WEIGHT = 0.5
 CREATE_TESTSET_HEADLINE_MAX = 20
@@ -124,23 +119,19 @@ CREATE_TESTSET_SPLITTER_MAX_TOKENS = 1500
 CREATE_TESTSET_CHUNK_MDS_GLOB = f"{PDF2MD_PER_PAGES_OUTPUT_DIR}/*.md"
 
 
-# =============================================================================
-# RAG評価設定（rag_evaluate）
-# =============================================================================
-
-# --- 評価用データセット生成 ---
-EVAL_INPUT_CSV = "rag_evaluate/testsets/testset_20251219161219.csv"
+# --- テストから生成するデータセット設定 ---
+EVAL_INPUT_CSV = "rag_evaluate/testsets/testset_20251226101134.csv" # 生成したテストセット
 EVAL_DATASET_OUTPUT_DIR = "rag_evaluate/datasets"
-EVAL_LLM_MODEL_NAME = "gemini-3-flash-preview"
+EVAL_LLM_MODEL_NAME = "gemini-3-pro-preview" # 回答生成LLMモデル
 EVAL_LLM_TEMPERATURE = 0.7
 EVAL_LLM_MAX_OUTPUT_TOKENS = 10000
-EVAL_LLM_THINKING_LEVEL = "HIGH"
+EVAL_LLM_THINKING_LEVEL = "LOW"
 EVAL_RAG_METHOD = "rrf"
 
 # --- 評価実行 ---
 EVAL_EVALUATOR_LLM_MODEL_NAME = "gpt-5-mini"
 EVAL_EVALUATOR_LLM_TEMPERATURE = 0.2
-EVAL_DATASET_CSV_PATH = "rag_evaluate/datasets/dataset_20251219_164155.csv"
+EVAL_DATASET_CSV_PATH = "rag_evaluate/datasets/dataset_gemini.csv"
 EVAL_RESULT_OUTPUT_DIR = "rag_evaluate/eval_results"
 
 # --- 評価メトリクス ---
